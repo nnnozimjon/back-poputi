@@ -12,23 +12,23 @@ export class TripsController {
     return this.tripsService.create(createTripDto);
   }
 
-  @Get()
-  findAll() {
-    return this.tripsService.findAll();
-  }
+  // @Get()
+  // findAll() {
+  //   return this.tripsService.findAll();
+  // }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.tripsService.findOne(+id);
-  }
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.tripsService.findOne(+id);
+  // }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTripDto: UpdateTripDto) {
-    return this.tripsService.update(+id, updateTripDto);
-  }
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateTripDto: UpdateTripDto) {
+  //   return this.tripsService.update(+id, updateTripDto);
+  // }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.tripsService.remove(+id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.tripsService.remove(+id);
+  // }
 }
