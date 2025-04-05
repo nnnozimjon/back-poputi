@@ -62,6 +62,6 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(JwtMiddleware)
-      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats'); // Apply to all routes, or specify specific routes
+      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips'); // Apply to all routes, or specify specific routes
   }
 }

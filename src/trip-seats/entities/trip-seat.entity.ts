@@ -16,10 +16,10 @@ export class TripSeat {
     id: number; // Unique identifier as UUID
 
     @Column({ nullable: false })
-    trip_id: number; // Foreign key to trips table
+    trip_id: string; // Foreign key to trips table
 
     @Column({ nullable: false })
-    seat_id: string; // Foreign key to car_seats table
+    seat_id: number; // Foreign key to car_seats table
 
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
     price: number; // Price of the seat

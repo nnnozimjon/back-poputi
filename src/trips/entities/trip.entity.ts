@@ -42,6 +42,13 @@ import {
       default: 'scheduled',
     })
     status: 'scheduled' | 'ongoing' | 'completed' | 'canceled'; // Trip status
+
+    @Column({ 
+      type: 'timestamp', 
+      nullable: false,
+      default: () => 'CURRENT_TIMESTAMP' // Database-generated default
+    })
+    created_at: Date;
   
     @ManyToOne(() => Driver, (driver) => driver.trips, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'driver_id' })

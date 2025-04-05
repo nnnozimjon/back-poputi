@@ -8,6 +8,9 @@ export class SeatDto {
   
     @IsBoolean()
     is_driver: boolean;
+
+    @IsNumber()
+    price: number;
   }
 
 export class CreateTripDto {
