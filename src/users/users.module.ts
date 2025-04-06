@@ -14,7 +14,7 @@ import { EmailModule } from 'src/email/email.module';
         imports: [ConfigModule], // Import ConfigModule to use ConfigService
         useFactory: async (configService: ConfigService) => ({
           secret: configService.get<string>('JWT_SECRET'), // Fetch secret from .env
-          signOptions: { expiresIn: '24h' },
+          signOptions: { expiresIn: '1d' },
         }),
         inject: [ConfigService], // Inject ConfigService
       }),

@@ -29,12 +29,18 @@ export class TripsController {
         @Query('limit') limit = 10,
         @Query('departure_city') departure_city?: string,
         @Query('destination_city') destination_city?: string,
+        @Query('departure_time') departure_time?: string,
+        @Query('type') type?: 'bus' | 'car',
+        @Query('passengers') passengers?: number,
     ) {
         return this.tripsService.getAllTrips({
             page,
             limit,
             departure_city,
             destination_city,
+            departure_time,
+            type,
+            passengers,
         });
     }
 

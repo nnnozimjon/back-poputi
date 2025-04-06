@@ -16,4 +16,16 @@ export class PaginationDto {
   @IsOptional()
   @IsString()
   destination_city?: string;
+
+  @IsOptional()
+  @IsPositive()
+  passengers?: number;
+
+  @IsOptional()
+  @IsString()
+  departure_time?: string;
+
+  @IsOptional()
+  @IsString()
+  type?: 'bus' | 'car';
 }

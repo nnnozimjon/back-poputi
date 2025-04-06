@@ -10,16 +10,19 @@ import { CreateDriverDto } from './dto/create-driver.dto';
 import { UpdateDriverDto } from './dto/update-driver.dto';
 import { User } from 'src/users/entities/user.entity';
 import { DriverDetailsDto } from './dto/driver-details.dto';
+import { JwtService } from '@nestjs/jwt';
+
+// !comment: change validation to russian language
 
 @Injectable()
 export class DriversService {
     constructor(
         @InjectRepository(Driver) private driverRepository: Repository<Driver>,
         @InjectRepository(User) private userRepository: Repository<User>,
+        private readonly jwtService: JwtService,
     ) {}
 
-    async create(createDriverDto: CreateDriverDto): Promise<Driver> {
-        // Check if a driver with the same user_id already exists
+    async create(createDriverDto: CreateDriverDto): Promise<{ driver: Driver, token: string }> {
         const existingDriver = await this.driverRepository.findOne({
             where: { user_id: createDriverDto.user_id },
         });
@@ -52,7 +55,29 @@ export class DriversService {
             { is_driver: true },
         );
 
-        return savedDriver;
+        // Get the user to generate new token
+        const user = await this.userRepository.findOne({
+            where: { id: createDriverDto.user_id },
+            relations: ['drivers']
+        });
+
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Generate new token with updated is_driver status
+        const payload = {
+            id: user.id,
+            email: user.email,
+            phone_number: user.phone_number,
+            roles: user.roles,
+            is_driver: true,
+            is_car_seats_added: user.drivers[0]?.carSeats?.length > 0 ? true : false
+        };
+
+        const token = this.jwtService.sign(payload);
+
+        return { driver: savedDriver, token };
     }
 
     async userVehicleDetails(user_id: string): Promise<DriverDetailsDto> {

@@ -52,6 +52,7 @@ export class UsersService {
         // Check if user already exists (searching for email or phone_number)
         let user = await this.userRepository.findOne({
             where: [{ email: login }, { phone_number: login }],
+            relations: ['drivers', 'drivers.carSeats'] // Include drivers and their car seats
         });
 
         if (!user) {
@@ -69,6 +70,11 @@ export class UsersService {
             await this.userRepository.save(user);
         }
 
+        // Check if user has car seats
+        const is_car_seats_added = user.drivers?.some(driver => 
+            driver.carSeats && driver.carSeats.length > 0
+        );
+
         // Generate JWT Token
         const payload = {
             id: user.id,
@@ -76,6 +82,7 @@ export class UsersService {
             phone_number: user.phone_number,
             roles: user.roles,
             is_driver: user.is_driver,
+            is_car_seats_added: is_car_seats_added || false
         };
         const token = this.jwtService.sign(payload);
 

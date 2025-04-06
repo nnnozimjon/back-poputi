@@ -8,6 +8,11 @@ import { Repository, QueryFailedError } from 'typeorm';
 import { CarSeat } from './entities/car-seat.entity';
 import { CreateCarSeatDto } from './dto/create-car-seat.dto';
 import { Driver } from '../drivers/entities/driver.entity';
+import { User } from '../users/entities/user.entity';
+import { JwtService } from '@nestjs/jwt';
+
+
+// !comment: change validation to russian language
 
 @Injectable()
 export class CarSeatsService {
@@ -16,12 +21,15 @@ export class CarSeatsService {
         private readonly carSeatRepository: Repository<CarSeat>,
         @InjectRepository(Driver)
         private readonly driverRepository: Repository<Driver>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
+        private readonly jwtService: JwtService,
     ) {}
 
     async create(
         user_id: string,
         createCarSeatDto: CreateCarSeatDto,
-    ): Promise<CarSeat[]> {
+    ): Promise<{ carSeats: CarSeat[], token: string }> {
         const { seats } = createCarSeatDto;
 
         // Fetch the driver_id using the user_id
@@ -51,7 +59,30 @@ export class CarSeatsService {
 
         try {
             // Save all car seats to the database
-            return await this.carSeatRepository.save(carSeats);
+            const savedCarSeats = await this.carSeatRepository.save(carSeats);
+
+            // Get the user to generate new token
+            const user = await this.userRepository.findOne({
+                where: { id: user_id },
+                relations: ['drivers', 'drivers.carSeats']
+            });
+
+            if (!user) {
+                throw new NotFoundException('User not found');
+            }
+
+            // Generate new token with updated is_car_seats_added status
+            const payload = {
+                id: user.id,
+                email: user.email,
+                phone_number: user.phone_number,
+                roles: user.roles,
+                is_driver: user.is_driver,
+                is_car_seats_added: true
+            };
+            const token = this.jwtService.sign(payload);
+
+            return { carSeats: savedCarSeats, token };
         } catch (error) {
             if (
                 error instanceof QueryFailedError &&
