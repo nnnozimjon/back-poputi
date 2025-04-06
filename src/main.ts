@@ -17,6 +17,6 @@ async function bootstrap() {
    // Set global prefix for all routes
    app.setGlobalPrefix('api/client'); // This will make all routes start with "/api/client"
 
-  await app.listen(3000);
+  await app.listen(process.env.PORT || 3000);
 }
 bootstrap();
