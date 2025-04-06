@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -62,6 +62,10 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(JwtMiddleware)
+      .exclude(
+        { path: 'trips', method: RequestMethod.GET }, 
+        { path: 'trips/:id', method: RequestMethod.GET } 
+      )
       .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking'); // Apply to all routes, or specify specific routes
   }
 }
