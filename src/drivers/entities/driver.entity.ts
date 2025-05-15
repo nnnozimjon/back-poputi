@@ -26,6 +26,12 @@ import {
     @Column({ unique: true, nullable: false })
     plate_number: string; // Unique plate number
 
+    @Column({ nullable: true })
+    car_image: string; // URL of the car image
+
+    @Column({ nullable: true })
+    driver_license_image: string; // URL of the driver's license image
+
     @Column({ nullable: false })
     car_color_id: number; // Foreign key to car_color table
   

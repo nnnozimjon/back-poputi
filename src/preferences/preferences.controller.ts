@@ -13,7 +13,7 @@ export class PreferencesController {
   // }
 
   @Get()
-  findAll() {
+  findAllDriverPreferences() {
     return this.preferencesService.findAll();
   }
 

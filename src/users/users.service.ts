@@ -1,91 +1,211 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import {
+    BadRequestException,
+    ConflictException,
+    Injectable,
+    UnauthorizedException,
+} from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
-import { CreateUserDto } from './dto/create-user.dto';
-import { EmailService } from 'src/email/email.service';
+import {
+    LoginUserDto,
+    RegisterUserDto,
+    SendOtpCodeDto,
+} from './dto/create-user.dto';
+import { SmsService } from 'src/sms/sms.service';
+import { DriversService } from 'src/drivers/drivers.service';
+import { CarSeatsService } from 'src/car-seats/car-seats.service';
+import { ImageService } from 'src/images/image.service';
 
 @Injectable()
 export class UsersService {
-    @Inject(EmailService)
-    private readonly emailService: EmailService;
-
-    private otpStore = new Map<string, string>(); // Temporary OTP storage
+    private otpStore = new Map<string, { otp: string; createdAt: number }>(); // Temporary OTP storage
 
     constructor(
         @InjectRepository(User) private userRepository: Repository<User>,
+        @InjectDataSource() private readonly dataSource: DataSource,
+
         private jwtService: JwtService,
+        private readonly smsService: SmsService,
+        private readonly imageService: ImageService,
+        private readonly carDetailsService: DriversService,
+        private readonly carSeatsService: CarSeatsService,
     ) {}
 
-    // Step 1: Generate OTP and store it
-    async create(createUserDto: CreateUserDto) {
-        const { email, phone_number } = createUserDto;
+    async sendOtpCode(phone_number: string) {
+        const otp = this.generateOtp();
 
-        if (!email && !phone_number) {
-            throw new UnauthorizedException(
-                'Email or phone number is required',
+        this.otpStore.set(phone_number, {
+            otp,
+            createdAt: Date.now(),
+        });
+
+        await this.smsService.sendSms(
+            phone_number,
+            `Ваш код подтверждения: ${otp}`,
+        );
+
+        return { message: 'OTP успешно отправлен!' };
+    }
+
+    private generateOtp(): string {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    async verifyOtpCode(
+        phone_number: string,
+        otp_code: string,
+    ): Promise<boolean> {
+        const otpRecord = this.otpStore.get(phone_number);
+
+        if (!otpRecord) {
+            return false;
+        }
+
+        if (otpRecord.otp !== otp_code) {
+            return false;
+        }
+
+        const otpExpiryTime = otpRecord.createdAt + 10 * 60 * 1000;
+        const currentTime = Date.now();
+
+        if (currentTime > otpExpiryTime) {
+            this.otpStore.delete(phone_number);
+            return false;
+        }
+
+        this.otpStore.delete(phone_number);
+        return true;
+    }
+
+    async checkUserExists(phone_number: string) {
+        const user = await this.userRepository.findOne({
+            where: { phone_number },
+        });
+
+        if (user) {
+            throw new ConflictException(
+                'Пользователь с таким номером телефона уже существует.',
             );
         }
 
-        const contact = email || phone_number; // Identify the contact method
-        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-
-        if (email) {
-            this.emailService.sendOtpEmail(email, otp);
-        }
-        this.otpStore.set(contact, otp); // Store OTP temporarily
-
-        return { message: 'OTP sent successfully' };
+        return;
     }
 
-    // Step 2: Verify OTP and store the user
-    async verifyOtp(login: string, otp: string, fullname: string) {
-        const storedOtp = this.otpStore.get(login);
+    async registerUser(dto: RegisterUserDto) {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-        if (!storedOtp || storedOtp !== otp) {
-            throw new UnauthorizedException('Invalid OTP');
+        try {
+            const user = await this.createUser({ ...dto }, queryRunner.manager);
+
+            const carDetails = this.parseJsonField(
+                dto.car_details,
+                'car_details',
+            );
+
+            await this.carDetailsService.create(
+                { ...carDetails, user_id: user.id },
+                queryRunner.manager,
+            );
+
+            const carSeats = this.parseJsonField(dto.car_seats, 'car_seats');
+
+            await this.carSeatsService.create(
+                user.id,
+                { seats: carSeats },
+                queryRunner.manager,
+            );
+
+            const isOtpValid = await this.verifyOtpCode(
+                dto.phone_number,
+                dto.otp_code,
+            );
+
+            if (!isOtpValid) {
+                throw new UnauthorizedException('Неверный код подтверждения');
+            }
+
+            if (dto.avatar_image) {
+                const image = await this.imageService.saveImage(
+                    dto.avatar_image,
+                );
+
+                await queryRunner.manager.update('users', user.id, {
+                    avatar_image: image.fileName,
+                });
+            }
+            await queryRunner.commitTransaction();
+            return { success: true, userId: user.id };
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    private parseJsonField(field: any, fieldName: string) {
+        try {
+            return typeof field === 'string' ? JSON.parse(field) : field;
+        } catch {
+            throw new BadRequestException(
+                `Ошибка при обработке поля ${fieldName}`,
+            );
+        }
+    }
+
+    async createUser(dto: RegisterUserDto, manager?: EntityManager) {
+        const repo = manager
+            ? manager.getRepository(User)
+            : this.userRepository;
+        const user = repo.create({
+            email: dto.phone_number.includes('@') ? dto.phone_number : null,
+            phone_number: dto.phone_number.includes('@')
+                ? null
+                : dto.phone_number,
+            fullname: dto.username,
+            avatar_image: dto.avatar_image,
+            is_driver: true,
+            status: 'active',
+            roles: [],
+        });
+        return repo.save(user);
+    }
+
+    async loginUser(dto: LoginUserDto) {
+        const isOtpValid = await this.verifyOtpCode(
+            dto.phone_number,
+            dto.otp_code,
+        );
+
+        if (!isOtpValid) {
+            throw new UnauthorizedException('Неверный код подтверждения');
         }
 
-        this.otpStore.delete(login); // Remove OTP after successful verification
-
-        // Check if user already exists (searching for email or phone_number)
-        let user = await this.userRepository.findOne({
-            where: [{ email: login }, { phone_number: login }],
-            relations: ['drivers', 'drivers.carSeats'] // Include drivers and their car seats
+        const user = await this.userRepository.findOne({
+            where: { phone_number: dto.phone_number },
         });
 
         if (!user) {
-            // Create new user
-            user = this.userRepository.create({
-                email: login.includes('@') ? login : null,
-                phone_number: login.includes('@') ? null : login,
-                fullname, // Default empty, should be updated later
-                profile_picture: null,
-                is_driver: false,
-                status: 'active',
-                roles: [], // Empty by default
-            });
-
-            await this.userRepository.save(user);
+            throw new UnauthorizedException('Пользователь не найден');
         }
 
-        // Check if user has car seats
-        const is_car_seats_added = user.drivers?.some(driver => 
-            driver.carSeats && driver.carSeats.length > 0
-        );
-
-        // Generate JWT Token
         const payload = {
             id: user.id,
-            email: user.email,
             phone_number: user.phone_number,
-            roles: user.roles,
+            fullname: user.fullname,
+            avatar_image: user.avatar_image,
+            street_address: user.street_address,
             is_driver: user.is_driver,
-            is_car_seats_added: is_car_seats_added || false
         };
-        const token = this.jwtService.sign(payload);
+        const token = await this.jwtService.signAsync(payload);
 
-        return { message: 'Login successful', token, user };
+        return {
+            token,
+            user,
+        };
     }
 }

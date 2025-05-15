@@ -33,17 +33,25 @@ export class DriverPreferenceService {
             });
         }
 
-        // Create driver preferences for each preferenceId
-        const driverPreferences = createDriverPreferenceDto.preferenceIds.map(
-            (preferenceId) =>
-                this.driverPreferenceRepository.create({
-                    driver_id: driver.id,
-                    preference_id: preferenceId,
-                }),
-        );
+        // Use transaction to delete existing preferences and create new ones
+        return this.driverPreferenceRepository.manager.transaction(async (transactionalEntityManager) => {
+            // Delete all existing preferences for this driver
+            await transactionalEntityManager.delete(DriverPreference, {
+                driver_id: driver.id
+            });
 
-        // Save the driver preferences to the database
-        return this.driverPreferenceRepository.save(driverPreferences);
+            // Create new driver preferences for each preferenceId
+            const driverPreferences = createDriverPreferenceDto.preferenceIds.map(
+                (preferenceId) =>
+                    this.driverPreferenceRepository.create({
+                        driver_id: driver.id,
+                        preference_id: preferenceId,
+                    }),
+            );
+
+            // Save the new driver preferences within the transaction
+            return transactionalEntityManager.save(DriverPreference, driverPreferences);
+        });
     }
 
     // Retrieve all driver preferences for a specific user

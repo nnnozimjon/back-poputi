@@ -4,15 +4,11 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryFailedError } from 'typeorm';
+import { Repository, QueryFailedError, EntityManager } from 'typeorm';
 import { CarSeat } from './entities/car-seat.entity';
 import { CreateCarSeatDto } from './dto/create-car-seat.dto';
 import { Driver } from '../drivers/entities/driver.entity';
-import { User } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
-
-
-// !comment: change validation to russian language
 
 @Injectable()
 export class CarSeatsService {
@@ -21,19 +17,24 @@ export class CarSeatsService {
         private readonly carSeatRepository: Repository<CarSeat>,
         @InjectRepository(Driver)
         private readonly driverRepository: Repository<Driver>,
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
-        private readonly jwtService: JwtService,
     ) {}
 
     async create(
         user_id: string,
         createCarSeatDto: CreateCarSeatDto,
-    ): Promise<{ carSeats: CarSeat[], token: string }> {
+        manager?: EntityManager,
+    ): Promise<CarSeat[]> {
+        const carSeatRepo = manager
+            ? manager.getRepository(CarSeat)
+            : this.carSeatRepository;
+        const driverRepo = manager
+            ? manager.getRepository(Driver)
+            : this.driverRepository;
+
         const { seats } = createCarSeatDto;
 
-        // Fetch the driver_id using the user_id
-        const driver = await this.driverRepository.findOne({
+        // 1. Get driver ID by user_id (within transaction scope)
+        const driver = await driverRepo.findOne({
             where: { user_id },
             select: ['id'],
         });
@@ -47,9 +48,9 @@ export class CarSeatsService {
 
         const driver_id = driver.id;
 
-        // Create an array of CarSeat entities
+        // 2. Create seat entities
         const carSeats = seats.map((seat) =>
-            this.carSeatRepository.create({
+            carSeatRepo.create({
                 driver_id,
                 seat_row: seat.seat_row,
                 seat_column: seat.seat_column,
@@ -58,49 +59,35 @@ export class CarSeatsService {
         );
 
         try {
-            // Save all car seats to the database
-            const savedCarSeats = await this.carSeatRepository.save(carSeats);
-
-            // Get the user to generate new token
-            const user = await this.userRepository.findOne({
-                where: { id: user_id },
-                relations: ['drivers', 'drivers.carSeats']
-            });
-
-            if (!user) {
-                throw new NotFoundException('User not found');
-            }
-
-            // Generate new token with updated is_car_seats_added status
-            const payload = {
-                id: user.id,
-                email: user.email,
-                phone_number: user.phone_number,
-                roles: user.roles,
-                is_driver: user.is_driver,
-                is_car_seats_added: true
-            };
-            const token = this.jwtService.sign(payload);
-
-            return { carSeats: savedCarSeats, token };
+            // 3. Save to DB (within transaction)
+            return await carSeatRepo.save(carSeats);
         } catch (error) {
             if (
                 error instanceof QueryFailedError &&
                 error.message.includes('UQ_DRIVER_SEAT_ROW_COLUMN')
             ) {
                 throw new ConflictException(
-                    'A seat with the same row and column already exists for this driver.',
+                    'Место с такой строкой и колонкой уже существует для этого водителя.',
                 );
             }
-            throw error; // Re-throw other errors
+            throw error;
         }
     }
 
     async findAllDriverSeats(
         user_id: string,
-    ): Promise<{ [key: number]: { id: number, is_driver: boolean }[] }> {
+        manager?: EntityManager,
+    ): Promise<{ [key: number]: { id: number; is_driver: boolean }[] }> {
+        const driverRepo = manager
+            ? manager.getRepository(Driver)
+            : this.driverRepository;
+
+        const carSeatRepo = manager
+            ? manager.getRepository(CarSeat)
+            : this.carSeatRepository;
+
         // Fetch the driver_id using the user_id
-        const driver = await this.driverRepository.findOne({
+        const driver = await driverRepo.findOne({
             where: { user_id },
             select: ['id'],
         });
@@ -115,7 +102,7 @@ export class CarSeatsService {
         const driver_id = driver.id;
 
         // Fetch all seats for the driver
-        const seats = await this.carSeatRepository.find({
+        const seats = await carSeatRepo.find({
             where: { driver_id },
             order: { seat_row: 'ASC', seat_column: 'ASC' }, // Order by row and column
         });
@@ -130,7 +117,7 @@ export class CarSeatsService {
                 acc[row].push({ id: seat.id, is_driver: seat.is_driver_seat });
                 return acc;
             },
-            {} as { [key: number]: { id: number, is_driver: boolean }[] },
+            {} as { [key: number]: { id: number; is_driver: boolean }[] },
         );
 
         // Convert the grouped object to the desired format

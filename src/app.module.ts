@@ -19,10 +19,13 @@ import { BookingModule } from './booking/booking.module';
 import { TripSeatsModule } from './trip-seats/trip-seats.module';
 import { DriverPreferenceModule } from './driver-preference/driver-preference.module';
 import { PreferencesModule } from './preferences/preferences.module';
+import { ImageModule } from './images/image.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -51,6 +54,7 @@ import { PreferencesModule } from './preferences/preferences.module';
     TripSeatsModule,
     DriverPreferenceModule,
     PreferencesModule,
+    ImageModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtService, ConfigService],
@@ -66,6 +70,6 @@ export class AppModule implements NestModule {
         { path: 'trips', method: RequestMethod.GET }, 
         { path: 'trips/:id', method: RequestMethod.GET } 
       )
-      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking'); // Apply to all routes, or specify specific routes
+      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking', 'drivers/update', 'drivers', 'images'); // Apply to all routes, or specify specific routes
   }
 }

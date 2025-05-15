@@ -17,7 +17,13 @@ export class User {
     fullname: string;  // Unique display name
 
     @Column({ nullable: true })
-    profile_picture: string;  // URL of the profile picture
+    street_address: string;  // Unique display name
+
+    @Column({ nullable: true })
+    avatar_image: string;  // URL of the avatar image
+
+    @Column({ nullable: true })
+    passport_image: string;  // URL of the passport image
 
     @Column({ default: false })
     is_driver: boolean;  // Boolean to check if the user is a driver

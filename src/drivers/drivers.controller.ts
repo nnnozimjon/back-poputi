@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, Put } from '@nestjs/common';
 import { DriversService } from './drivers.service';
 import { CreateDriverDto } from './dto/create-driver.dto';
 import { UpdateDriverDto } from './dto/update-driver.dto';
@@ -16,6 +16,12 @@ export class DriversController {
   async userVehicleDetails(@Req() req: Request) {
     const { id } = req['user']
     return this.driversService.userVehicleDetails(id);
+  }
+
+  @Put('/update')
+  update(@Req() req: Request, @Body() createDriverDto: CreateDriverDto) { 
+    const { id } = req['user']
+    return this.driversService.update(id, createDriverDto);
   }
 
   // @Get()

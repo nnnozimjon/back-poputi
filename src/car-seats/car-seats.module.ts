@@ -22,5 +22,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   ],
   controllers: [CarSeatsController],  
   providers: [CarSeatsService],
+  exports: [CarSeatsService],
 })
 export class CarSeatsModule {}

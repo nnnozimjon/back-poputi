@@ -19,5 +19,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   }),],
   controllers: [DriversController],
   providers: [DriversService],
+  exports: [DriversService],
 })
 export class DriversModule {}

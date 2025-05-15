@@ -6,7 +6,10 @@ import { User } from './entities/user.entity';
 import { Otp } from './entities/otp.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { EmailModule } from 'src/email/email.module';
+import { SmsModule } from 'src/sms/sms.module';
+import { DriversModule } from 'src/drivers/drivers.module';
+import { CarSeatsModule } from 'src/car-seats/car-seats.module';
+import { ImageModule } from 'src/images/image.module';
 @Module({
     imports: [
       TypeOrmModule.forFeature([User, Otp]),
@@ -18,7 +21,10 @@ import { EmailModule } from 'src/email/email.module';
         }),
         inject: [ConfigService], // Inject ConfigService
       }),
-      EmailModule,
+      SmsModule,
+      DriversModule,
+      CarSeatsModule,
+      ImageModule,
     ],
     controllers: [UsersController],
     providers: [UsersService],
