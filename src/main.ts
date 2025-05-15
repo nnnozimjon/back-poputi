@@ -7,7 +7,7 @@ async function bootstrap() {
 
     // Enable CORS
     app.enableCors({
-      origin: '*', // Allow all origins (Change this to specific origins in production)
+      origin: ['poputi.tj', 'test.poputi.tj', 'paputi.tj'], // Allow all origins (Change this to specific origins in production)
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       allowedHeaders: 'Content-Type, Authorization',
     });
