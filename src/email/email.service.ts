@@ -45,7 +45,6 @@ export class EmailService {
 
         try {
             await this.transporter.sendMail(mailOptions);
-            console.log(`OTP отправлен на ${to}`);
         } catch (error) {
             console.error('Ошибка при отправке OTP:', error);
             throw new Error(

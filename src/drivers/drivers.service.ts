@@ -26,8 +26,6 @@ export class DriversService {
         createDriverDto: CreateDriverDto,
         manager?: EntityManager,
     ): Promise<Driver> {
-
-        console.log('createDriverDto', createDriverDto);
         const repo = manager
             ? manager.getRepository(Driver)
             : this.driverRepository;
