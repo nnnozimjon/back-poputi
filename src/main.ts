@@ -9,9 +9,10 @@ async function bootstrap() {
     app.enableCors({
         origin: [
             'https://poputi.tj',
+            'https://www.poputi.tj',
             'https://test.poputi.tj',
             'https://paputi.tj',
-        ],
+        ],        
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
         allowedHeaders: 'Content-Type, Authorization',
     });
