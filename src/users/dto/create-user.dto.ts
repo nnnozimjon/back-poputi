@@ -13,6 +13,10 @@ import {
 export class SendOtpCodeDto {
     @IsPhoneNumber(null, { message: 'Неверный формат номера телефона' })
     phone_number: string;
+
+    @IsString()
+    @IsNotEmpty()
+    type: string;
 }
 
 class CarSeatDto {
@@ -44,6 +48,15 @@ class CarDetailsDto {
     car_model_id: number;
 }
 
+export class RegisterPassengerDto {
+    @IsString()
+    @IsNotEmpty()
+    username: string;
+
+    @IsString()
+    @IsNotEmpty()
+    phone_number: string;
+}
 export class RegisterUserDto {
     @IsString()
     @IsNotEmpty()
@@ -79,7 +92,7 @@ export class LoginUserDto {
     @IsString()
     @IsNotEmpty()
     phone_number: string;
-    
+
     @IsString()
     @IsNotEmpty()
     otp_code: string;

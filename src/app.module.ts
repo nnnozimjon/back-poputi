@@ -20,6 +20,7 @@ import { TripSeatsModule } from './trip-seats/trip-seats.module';
 import { DriverPreferenceModule } from './driver-preference/driver-preference.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { ImageModule } from './images/image.module';
+import { OtpModule } from './otp/otp.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { ImageModule } from './images/image.module';
     DriverPreferenceModule,
     PreferencesModule,
     ImageModule,
+    OtpModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtService, ConfigService],

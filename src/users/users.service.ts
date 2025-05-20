@@ -8,80 +8,31 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
-import {
-    LoginUserDto,
-    RegisterUserDto,
-    SendOtpCodeDto,
-} from './dto/create-user.dto';
-import { SmsService } from 'src/sms/sms.service';
+import { LoginUserDto, RegisterPassengerDto, RegisterUserDto } from './dto/create-user.dto';
 import { DriversService } from 'src/drivers/drivers.service';
 import { CarSeatsService } from 'src/car-seats/car-seats.service';
 import { ImageService } from 'src/images/image.service';
+import { OtpService } from 'src/otp/otp.service';
 
 @Injectable()
 export class UsersService {
-    private otpStore = new Map<string, { otp: string; createdAt: number }>(); // Temporary OTP storage
-
     constructor(
         @InjectRepository(User) private userRepository: Repository<User>,
         @InjectDataSource() private readonly dataSource: DataSource,
 
         private jwtService: JwtService,
-        private readonly smsService: SmsService,
         private readonly imageService: ImageService,
+        private readonly otpService: OtpService,
         private readonly carDetailsService: DriversService,
         private readonly carSeatsService: CarSeatsService,
     ) {}
 
-    async sendOtpCode(phone_number: string) {
-        const otp = this.generateOtp();
-
-        this.otpStore.set(phone_number, {
-            otp,
-            createdAt: Date.now(),
-        });
-
-        await this.smsService.sendSms(
-            phone_number,
-            `Ваш код подтверждения: ${otp}`,
-        );
-
-        return { message: 'OTP успешно отправлен!' };
-    }
-
-    private generateOtp(): string {
-        return Math.floor(100000 + Math.random() * 900000).toString();
-    }
-
-    async verifyOtpCode(
-        phone_number: string,
-        otp_code: string,
-    ): Promise<boolean> {
-        const otpRecord = this.otpStore.get(phone_number);
-
-        if (!otpRecord) {
-            return false;
-        }
-
-        if (otpRecord.otp !== otp_code) {
-            return false;
-        }
-
-        const otpExpiryTime = otpRecord.createdAt + 10 * 60 * 1000;
-        const currentTime = Date.now();
-
-        if (currentTime > otpExpiryTime) {
-            this.otpStore.delete(phone_number);
-            return false;
-        }
-
-        this.otpStore.delete(phone_number);
-        return true;
-    }
-
     async checkUserExists(phone_number: string) {
+        const cleanedPhoneNumber = phone_number
+            .replace(/\D/g, '')
+            .replace(/^992/, '');
         const user = await this.userRepository.findOne({
-            where: { phone_number },
+            where: { phone_number: cleanedPhoneNumber },
         });
 
         if (user) {
@@ -99,7 +50,10 @@ export class UsersService {
         await queryRunner.startTransaction();
 
         try {
-            const user = await this.createUser({ ...dto }, queryRunner.manager);
+            const user = await this.createDriverUser(
+                { ...dto },
+                queryRunner.manager,
+            );
 
             const carDetails = this.parseJsonField(
                 dto.car_details,
@@ -119,8 +73,9 @@ export class UsersService {
                 queryRunner.manager,
             );
 
-            const isOtpValid = await this.verifyOtpCode(
+            const isOtpValid = await this.otpService.verifyOtp(
                 dto.phone_number,
+                'register',
                 dto.otp_code,
             );
 
@@ -157,27 +112,46 @@ export class UsersService {
         }
     }
 
-    async createUser(dto: RegisterUserDto, manager?: EntityManager) {
+    async createDriverUser(dto: RegisterUserDto, manager?: EntityManager) {
+        const cleanedPhoneNumber = dto.phone_number
+            .replace(/\D/g, '')
+            .replace(/^992/, '');
         const repo = manager
             ? manager.getRepository(User)
             : this.userRepository;
         const user = repo.create({
-            email: dto.phone_number.includes('@') ? dto.phone_number : null,
-            phone_number: dto.phone_number.includes('@')
-                ? null
-                : dto.phone_number,
+            phone_number: cleanedPhoneNumber,
+            street_address: dto.street_address,
             fullname: dto.username,
             avatar_image: dto.avatar_image,
             is_driver: true,
             status: 'active',
-            roles: [],
+            roles: ['driver'],
         });
         return repo.save(user);
     }
 
+    async createPassengerUser(dto: RegisterPassengerDto) {
+        const cleanedPhoneNumber = dto.phone_number
+            .replace(/\D/g, '')
+            .replace(/^992/, '');
+        const user = this.userRepository.create({
+            phone_number: cleanedPhoneNumber,
+            fullname: dto.username,
+            is_driver: false,
+            status: 'active',
+            roles: ['passenger'],
+        });
+        return this.userRepository.save(user);
+    }
+
     async loginUser(dto: LoginUserDto) {
-        const isOtpValid = await this.verifyOtpCode(
+        const cleanedPhoneNumber = dto.phone_number
+            .replace(/\D/g, '')
+            .replace(/^992/, '');
+        const isOtpValid = await this.otpService.verifyOtp(
             dto.phone_number,
+            'login',
             dto.otp_code,
         );
 
@@ -186,7 +160,7 @@ export class UsersService {
         }
 
         const user = await this.userRepository.findOne({
-            where: { phone_number: dto.phone_number },
+            where: { phone_number: cleanedPhoneNumber },
         });
 
         if (!user) {
@@ -201,7 +175,10 @@ export class UsersService {
             street_address: user.street_address,
             is_driver: user.is_driver,
         };
-        const token = await this.jwtService.signAsync(payload);
+
+        const token = await this.jwtService.signAsync(payload, {
+            expiresIn: '365d',
+        });
 
         return {
             token,

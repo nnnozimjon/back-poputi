@@ -146,7 +146,6 @@ export class DriversService {
         // 5. Generate new token with updated driver info
         const payload = {
             id: user.id,
-            email: user.email,
             phone_number: user.phone_number,
             fullname: user.fullname,
             roles: user.roles,

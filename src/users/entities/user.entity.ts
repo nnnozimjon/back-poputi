@@ -1,38 +1,40 @@
-import { Booking } from "src/booking/entities/booking.entity";
-import { Driver } from "src/drivers/entities/driver.entity";
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Booking } from 'src/booking/entities/booking.entity';
+import { Driver } from 'src/drivers/entities/driver.entity';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'users' })
 export class User {
-    @PrimaryGeneratedColumn("uuid")
-    id: string;  // Unique identifier as UUID
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-    @Column({ unique: true, nullable: true })
-    email: string;  // For login/registration
+    @Column({ unique: true, nullable: false })
+    phone_number: string;
 
-    @Column({ unique: true, nullable: true})
-    phone_number: string; // For login/registration
-
-    @Column({ nullable: true })
-    fullname: string;  // Unique display name
+    @Column({ nullable: false })
+    fullname: string;
 
     @Column({ nullable: true })
-    street_address: string;  // Unique display name
+    street_address: string;
 
     @Column({ nullable: true })
-    avatar_image: string;  // URL of the avatar image
+    avatar_image: string;
 
     @Column({ nullable: true })
-    passport_image: string;  // URL of the passport image
+    passport_image: string;
 
     @Column({ default: false })
-    is_driver: boolean;  // Boolean to check if the user is a driver
+    is_driver: boolean;
 
-    @Column({ type: "enum", enum: ["active", "inactive", "suspended"], default: "active" })
-    status: string;  // Active/Inactive/Suspended
+    @Column({
+        type: 'enum',
+        enum: ['active', 'inactive', 'suspended'],
+        default: 'active',
+    })
+    
+    status: string;
 
-    @Column("simple-array", { default: [] })
-    roles: string[];  // User roles (driver, passenger)
+    @Column('simple-array', { default: [] })
+    roles: string[];
 
     @OneToMany(() => Driver, (driver) => driver.user)
     drivers: Driver[];

@@ -7,18 +7,25 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { RegisterUserDto, SendOtpCodeDto } from './dto/create-user.dto';
+import { RegisterPassengerDto, RegisterUserDto, SendOtpCodeDto } from './dto/create-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
+import { OtpService } from 'src/otp/otp.service';
 
 @Controller('users')
 export class UsersController {
-    constructor(private readonly usersService: UsersService) {}
+    constructor(
+        private readonly usersService: UsersService,
+        private readonly otpService: OtpService,
+    ) {}
 
     @Post('send-otp')
     async sendOtp(@Body() createUserDto: SendOtpCodeDto) {
-        return this.usersService.sendOtpCode(createUserDto.phone_number);
+        return this.otpService.sendOtp(
+            createUserDto.phone_number,
+            createUserDto.type,
+        );
     }
 
     @Post('check-user')
@@ -49,13 +56,24 @@ export class UsersController {
         return this.usersService.registerUser(body);
     }
 
+    @Post('register-passenger')
+    async registerPassenger(@Body() body: RegisterPassengerDto) {
+        return this.usersService.createPassengerUser(body);
+    }
+
     @Post('login')
     async login(@Body() body: { phone_number: string; otp_code: string }) {
         return this.usersService.loginUser(body);
     }
 
     @Post('verify-otp')
-    verifyOtp(@Body() body: { phone_number: string; otp: string }) {
-        return this.usersService.verifyOtpCode(body.phone_number, body.otp);
+    verifyOtp(
+        @Body() body: { phone_number: string; otp: string; type: string },
+    ) {
+        return this.otpService.verifyOtp(
+            body.phone_number,
+            body.type,
+            body.otp,
+        );
     }
 }
