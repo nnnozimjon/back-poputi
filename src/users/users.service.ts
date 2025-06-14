@@ -36,6 +36,7 @@ export class UsersService {
         });
 
         if (user) {
+            console.log('Error: User already exists with phone number:', cleanedPhoneNumber);
             throw new ConflictException(
                 'Пользователь с таким номером телефона уже существует.',
             );
@@ -80,6 +81,7 @@ export class UsersService {
             );
 
             if (!isOtpValid) {
+                console.log('Error: Invalid OTP code for registration');
                 throw new UnauthorizedException('Неверный код подтверждения');
             }
 
@@ -96,6 +98,7 @@ export class UsersService {
             return { success: true, userId: user.id };
         } catch (error) {
             await queryRunner.rollbackTransaction();
+            console.log('Error in registerUser:', error);
             throw error;
         } finally {
             await queryRunner.release();
@@ -106,6 +109,7 @@ export class UsersService {
         try {
             return typeof field === 'string' ? JSON.parse(field) : field;
         } catch {
+            console.log('Error: Failed to parse JSON field:', fieldName);
             throw new BadRequestException(
                 `Ошибка при обработке поля ${fieldName}`,
             );
@@ -156,6 +160,7 @@ export class UsersService {
         );
 
         if (!isOtpValid) {
+            console.log('Error: Invalid OTP code for login');
             throw new UnauthorizedException('Неверный код подтверждения');
         }
 
@@ -164,6 +169,7 @@ export class UsersService {
         });
 
         if (!user) {
+            console.log('Error: User not found with phone number:', cleanedPhoneNumber);
             throw new UnauthorizedException('Пользователь не найден');
         }
 
