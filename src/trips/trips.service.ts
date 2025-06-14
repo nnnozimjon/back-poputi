@@ -12,6 +12,7 @@ import { TripSeat } from '../trip-seats/entities/trip-seat.entity';
 import { Driver } from '../drivers/entities/driver.entity';
 import { PaginationDto } from 'src/trip-seats/dto/pagination.dto';
 import { Booking } from '../booking/entities/booking.entity';
+import { UpdateTripDto } from './dto/update-trip.dto';
 
 // !comment: change validations to russian
 @Injectable()
@@ -31,7 +32,6 @@ export class TripsService {
     ) {}
 
     async create(userId: string, createTripDto: CreateTripDto) {
-
         // !comment: add validation to car_seats
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -80,7 +80,7 @@ export class TripsService {
         }
     }
 
-    private validateTripTimes(createTripDto: CreateTripDto) {
+    private validateTripTimes(createTripDto: CreateTripDto | UpdateTripDto) {
         if (
             new Date(createTripDto.destination_time) <=
             new Date(createTripDto.departure_time)
@@ -121,7 +121,15 @@ export class TripsService {
     }
 
     async getAllTrips(paginationDto: PaginationDto) {
-        const { page, limit, departure_city, destination_city, passengers, departure_time, type } = paginationDto;
+        const {
+            page,
+            limit,
+            departure_city,
+            destination_city,
+            passengers,
+            departure_time,
+            type,
+        } = paginationDto;
 
         const query = this.tripRepository
             .createQueryBuilder('trip')
@@ -144,7 +152,7 @@ export class TripsService {
                 'user.fullname',
                 'user.id',
                 'carSeats',
-                'tripSeats'
+                'tripSeats',
             ]);
 
         // Add filters if they exist
@@ -162,14 +170,14 @@ export class TripsService {
 
         if (departure_time) {
             const searchDate = departure_time.split('T')[0];
-            
+
             query.andWhere('DATE(trip.departure_time) = :departureDate', {
                 departureDate: searchDate,
             });
         }
 
         if (type) {
-            query.andWhere(qb => {
+            query.andWhere((qb) => {
                 const subQuery = qb
                     .subQuery()
                     .select('COUNT(cs.id)')
@@ -177,26 +185,25 @@ export class TripsService {
                     .where('cs.driver_id = driver.id')
                     .getQuery();
 
-                return type === 'bus' 
-                    ? `${subQuery} > 5`
-                    : `${subQuery} <= 5`;
+                return type === 'bus' ? `${subQuery} > 5` : `${subQuery} <= 5`;
             });
         }
 
         if (passengers) {
-            query.andWhere(qb => {
-                const subQuery = qb
-                    .subQuery()
-                    .select('COUNT(ts.id)')
-                    .from('trip_seats', 'ts')
-                    .where('ts.trip_id = trip.id')
-                    .andWhere('ts.status = :status')
-                    .getQuery();
-                
-                return `${subQuery} >= :passengers`;
-            })
-            .setParameter('status', 'available')
-            .setParameter('passengers', passengers);
+            query
+                .andWhere((qb) => {
+                    const subQuery = qb
+                        .subQuery()
+                        .select('COUNT(ts.id)')
+                        .from('trip_seats', 'ts')
+                        .where('ts.trip_id = trip.id')
+                        .andWhere('ts.status = :status')
+                        .getQuery();
+
+                    return `${subQuery} >= :passengers`;
+                })
+                .setParameter('status', 'available')
+                .setParameter('passengers', passengers);
         }
 
         // Add pagination and ordering
@@ -244,54 +251,55 @@ export class TripsService {
 
         // Get all car seats for this driver
         const carSeats = await this.carSeatRepository.find({
-            where: { driver_id: trip.driver.id }
+            where: { driver_id: trip.driver.id },
         });
 
         // Get all bookings for this trip
         const bookings = await this.bookingRepository.find({
-            where: { 
+            where: {
                 trip_id: id,
-                status: 'confirmed' // Only consider confirmed bookings
+                status: 'confirmed', // Only consider confirmed bookings
             },
-            relations: ['seat']
+            relations: ['seat'],
         });
 
         // Get all trip seats for this trip
         const tripSeats = await this.tripSeatRepository.find({
-            where: { trip_id: id }
+            where: { trip_id: id },
         });
 
         // Create a map of booked seat IDs from bookings
         const bookedSeatIds = new Set(
-            bookings.map(booking => booking.seat.seat_id)
+            bookings.map((booking) => booking.seat.seat_id),
         );
 
         // Create a map of available seat IDs from trip seats
         const availableSeatIds = new Set(
-            tripSeats.map(tripSeat => tripSeat.seat_id)
+            tripSeats.map((tripSeat) => tripSeat.seat_id),
         );
 
         // Create a map of seat prices from trip seats
         const seatPrices = new Map(
-            tripSeats.map(tripSeat => [tripSeat.seat_id, tripSeat.price])
+            tripSeats.map((tripSeat) => [tripSeat.seat_id, tripSeat.price]),
         );
 
         // Process car seats to include booking status
-        const processedCarSeats = carSeats.map(carSeat => {
+        const processedCarSeats = carSeats.map((carSeat) => {
             // A seat is considered booked if:
             // 1. It's a driver seat OR
             // 2. It has a confirmed booking OR
             // 3. It's not available in trip seats (manually booked)
-            const isBooked = carSeat.is_driver_seat || 
-                           bookedSeatIds.has(carSeat.id) || 
-                           !availableSeatIds.has(carSeat.id);
+            const isBooked =
+                carSeat.is_driver_seat ||
+                bookedSeatIds.has(carSeat.id) ||
+                !availableSeatIds.has(carSeat.id);
             return {
-                id: carSeat.id, 
+                id: carSeat.id,
                 seat_row: carSeat.seat_row,
                 seat_column: carSeat.seat_column,
                 is_driver_seat: carSeat.is_driver_seat,
                 is_booked: isBooked,
-                price: seatPrices.get(carSeat.id) || 0 // Get price from trip seats, default to 0 if not set
+                price: seatPrices.get(carSeat.id) || 0, // Get price from trip seats, default to 0 if not set
             };
         });
 
@@ -303,7 +311,178 @@ export class TripsService {
                 car_model: trip.driver.carModel.name,
                 car_brand: trip.driver.carBrand.name,
             },
-            car_seats: processedCarSeats
+            car_seats: processedCarSeats,
         };
     }
+
+    async getMyTrips(userId: string) {
+        const trips = await this.tripRepository
+            .createQueryBuilder('trip')
+            .leftJoinAndSelect('trip.driver', 'driver')
+            .leftJoinAndSelect('driver.user', 'user')
+            .leftJoinAndSelect('driver.carBrand', 'carBrand')
+            .leftJoinAndSelect('driver.carModel', 'carModel')
+            .where('user.id = :userId', { userId })
+            .orderBy('trip.departure_time', 'ASC')
+            .getMany();
+
+        const tripsWithDetails = await Promise.all(
+            trips.map(async (trip) => {
+                // Get all car seats for this driver
+                const carSeats = await this.carSeatRepository.find({
+                    where: { driver_id: trip.driver.id },
+                });
+
+                // Get all bookings for this trip
+                const bookings = await this.bookingRepository.find({
+                    where: {
+                        trip_id: trip.id,
+                        // status: 'confirmed',
+                    },
+                    relations: ['seat'],
+                });
+
+                const tripSeats = await this.tripSeatRepository.find({
+                    where: { trip_id: trip.id },
+                });
+
+                const bookedSeatIds = new Set(
+                    bookings.map((booking) => booking.seat.seat_id),
+                );
+                const availableSeatIds = new Set(
+                    tripSeats.map((seat) => seat.seat_id),
+                );
+                const seatPrices = new Map(
+                    tripSeats.map((seat) => [seat.seat_id, seat.price]),
+                );
+
+                const processedCarSeats = carSeats.map((seat) => {
+                    const isBooked =
+                        seat.is_driver_seat ||
+                        bookedSeatIds.has(seat.id) ||
+                        !availableSeatIds.has(seat.id);
+                    return {
+                        id: seat.id,
+                        seat_row: seat.seat_row,
+                        seat_column: seat.seat_column,
+                        is_driver_seat: seat.is_driver_seat,
+                        is_booked: isBooked,
+                        price: seatPrices.get(seat.id) || 0,
+                    };
+                });
+
+                return {
+                    ...trip,
+                    driver: null,
+                    car_seats: processedCarSeats,
+                };
+            }),
+        );
+
+        return {
+            data: tripsWithDetails,
+        };
+    }
+
+    async update(userId: string, tripId: string, updateTripDto: UpdateTripDto) {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            // 1. Validate driver exists
+            const driver = await this.driverRepository.findOne({
+                where: { user_id: userId },
+            });
+
+            if (!driver) {
+                throw new NotFoundException('Driver not found for this user');
+            }
+
+            // 2. Find the trip and ensure it belongs to this driver
+            const trip = await this.tripRepository.findOne({
+                where: { id: tripId, driver_id: driver.id },
+            });
+
+            if (!trip) {
+                throw new NotFoundException('Trip not found or access denied');
+            }
+
+            // 3. Validate times
+            if (
+                updateTripDto.departure_time &&
+                updateTripDto.destination_time
+            ) {
+                this.validateTripTimes(updateTripDto);
+            }
+
+            // 4. Update trip fields
+            Object.assign(trip, {
+                departure_city:
+                    updateTripDto.departure_city ?? trip.departure_city,
+                destination_city:
+                    updateTripDto.destination_city ?? trip.destination_city,
+                departure_time:
+                    updateTripDto.departure_time ?? trip.departure_time,
+                destination_time:
+                    updateTripDto.destination_time ?? trip.destination_time,
+                is_sending_package_available:
+                    updateTripDto.is_sending_package_available ??
+                    trip.is_sending_package_available,
+                description: updateTripDto.description ?? trip.description,
+            });
+
+            const updatedTrip = await queryRunner.manager.save(trip);
+
+            // 5. If seats need to be updated, replace them
+            let updatedSeats = [];
+            if (updateTripDto.seats) {
+                // Optional: delete old seats and re-create
+                await this.tripSeatRepository.delete({ trip_id: trip.id });
+
+                updatedSeats = await this.createTripSeats(
+                    queryRunner,
+                    trip.id,
+                    updateTripDto.seats,
+                );
+            }
+
+            await queryRunner.commitTransaction();
+            return { ...updatedTrip, seats: updatedSeats };
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    // async delete(userId: string, tripId: string) {
+    //     const driver = await this.driverRepository.findOne({
+    //         where: { user_id: userId },
+    //     });
+
+    //     if (!driver) {
+    //         throw new NotFoundException('Driver not found for this user');
+    //     }
+
+    //     const trip = await this.tripRepository.findOne({
+    //         where: {
+    //             id: tripId,
+    //             driver_id: driver.id,
+    //         },
+    //     });
+
+    //     if (!trip) {
+    //         throw new NotFoundException('Trip not found or access denied');
+    //     }
+
+    //     await this.tripSeatRepository.delete({ trip_id: tripId });
+    //     await this.bookingRepository.delete({ trip_id: tripId });
+
+    //     // 4. Delete the trip
+    //     await this.tripRepository.delete(tripId);
+
+    //     return { message: 'Trip successfully deleted' };
+    // }
 }

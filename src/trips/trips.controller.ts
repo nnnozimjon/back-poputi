@@ -46,16 +46,28 @@ export class TripsController {
 
     @Get(':id')
     findOne(@Param('id') id: string) {
-      return this.tripsService.getTripById(id);
+        return this.tripsService.getTripById(id);
     }
 
-    // @Patch(':id')
-    // update(@Param('id') id: string, @Body() updateTripDto: UpdateTripDto) {
-    //   return this.tripsService.update(+id, updateTripDto);
-    // }
+    @Get('my/trips')
+    async getMyTrips(@Req() req: Request) {
+        const { id: user_id } = req['user'];
+        return this.tripsService.getMyTrips(user_id);
+    }
+
+    @Post(':id')
+    update(
+        @Param('id') id: string,
+        @Req() req: Request,
+        @Body() updateTripDto: UpdateTripDto,
+    ) {
+        const { id: user_id } = req['user'];
+        return this.tripsService.update(user_id, id, updateTripDto);
+    }
 
     // @Delete(':id')
-    // remove(@Param('id') id: string) {
-    //   return this.tripsService.remove(+id);
+    // remove(@Param('id') id: string, @Req() req: Request) {
+    //     const { id: user_id } = req['user'];
+    //   return this.tripsService.delete(user_id, id);
     // }
 }

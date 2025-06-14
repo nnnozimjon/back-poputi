@@ -21,6 +21,7 @@ import { DriverPreferenceModule } from './driver-preference/driver-preference.mo
 import { PreferencesModule } from './preferences/preferences.module';
 import { ImageModule } from './images/image.module';
 import { OtpModule } from './otp/otp.module';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { OtpModule } from './otp/otp.module';
         synchronize: true,
       }),
     }),
+    HttpModule,
     CitiesModule,
     UsersModule,
     CarBrandModule,
@@ -72,6 +74,6 @@ export class AppModule implements NestModule {
         { path: 'trips', method: RequestMethod.GET }, 
         { path: 'trips/:id', method: RequestMethod.GET } 
       )
-      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking', 'drivers/update', 'drivers', 'images'); // Apply to all routes, or specify specific routes
+      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking', 'drivers/update', 'drivers', 'images',  'trips/my-trips'); // Apply to all routes, or specify specific routes
   }
 }
