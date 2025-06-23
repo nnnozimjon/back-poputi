@@ -33,6 +33,9 @@ export class User {
     
     status: string;
 
+    @Column({ nullable: true })
+    password: string;
+
     @Column('simple-array', { default: [] })
     roles: string[];
 

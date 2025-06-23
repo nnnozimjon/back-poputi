@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { createReadStream, existsSync, ReadStream } from 'fs';
 import { ensureDir } from 'fs-extra';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
@@ -9,7 +10,28 @@ import { v4 as uuidv4 } from 'uuid';
 export class ImageService {
     private readonly uploadPath = join(__dirname, '..', '..', 'uploads');
 
-    // Save image, accepting base64 string or file object
+    getImageStream(filename: string): { stream: ReadStream; contentType: string } {
+        const filePath = join(this.uploadPath, filename);
+
+        if (!existsSync(filePath)) {
+            throw new NotFoundException('Image not found');
+        }
+
+        const ext = filename.split('.').pop()?.toLowerCase();
+
+        const contentTypeMap: Record<string, string> = {
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            png: 'image/png',
+            webp: 'image/webp',
+        };
+
+        const contentType = contentTypeMap[ext] || 'application/octet-stream';
+        const stream = createReadStream(filePath);
+
+        return { stream, contentType };
+    }
+
     async saveImage(
         file: Express.Multer.File | string,
         options?: {
@@ -18,31 +40,24 @@ export class ImageService {
             quality?: number;
         },
     ): Promise<{ fileName: string; path: string }> {
-        // Ensure upload directory exists
         await ensureDir(this.uploadPath);
 
         let buffer: Buffer;
 
         if (typeof file === 'string' && file.startsWith('data:image')) {
-            // Convert base64 string to buffer if it's a base64 image
             const base64Data = file.split(';base64,').pop();
             buffer = Buffer.from(base64Data, 'base64');
         } else if (file instanceof Buffer) {
-            // If it's already a Buffer, use it directly
             buffer = file;
         } else if (typeof file !== 'string' && 'buffer' in file) {
-            // If it's a Multer file, use the file buffer
             buffer = file.buffer;
         } else {
             throw new Error('Unsupported file type');
         }
 
-        // Generate unique filename
-        const fileExt = options?.format || 'jpeg'; // Default to jpeg if not provided
+        const fileExt = options?.format || 'jpeg';
         const fileName = `${uuidv4()}.${fileExt}`;
         const filePath = join(this.uploadPath, fileName);
-
-        // Process image if options provided
         let imageProcessor = sharp(buffer);
 
         if (options?.resize) {
@@ -64,7 +79,6 @@ export class ImageService {
             imageProcessor = imageProcessor.png({ compressionLevel: 9 });
         }
 
-        // Save processed image
         await imageProcessor.toFile(filePath);
 
         return {
@@ -73,11 +87,10 @@ export class ImageService {
         };
     }
 
-    // Delete the image by filename
     async deleteImage(fileName: string): Promise<void> {
         const filePath = join(this.uploadPath, fileName);
         await unlink(filePath).catch((err) => {
-            if (err.code !== 'ENOENT') throw err; // Ignore if file doesn't exist
+            if (err.code !== 'ENOENT') throw err;
         });
     }
 }

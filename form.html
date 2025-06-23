@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<body topmargin="50%" bottommargin="50%" onLoad="document.getElementById('pareq_form').submit();">
+<form method="post" name="pareq_form" id="pareq_form" action="https://test-web.alif.tj">
+    <input name="key" type="hidden" value="870304"/>
+    <input name="token" type="hidden" value="{{.Token}}"/>
+    <input name="orderId" type="hidden" value="{{.OrderID}}"/>
+    <input name="gate" type="hidden" value="{{.Gate}}"/>
+    <input name="amount" type="hidden" value="{{.Amount}}"/>
+    <input name="callbackUrl" type="hidden" value="{{.CallbackUrl}}"/>
+    <input name="returnUrl" type="hidden" value="{{.ReturnUrl}}"/>
+    <input name="phone" type="hidden" value="{{.Phone}}"/>
+    <noscript>
+        <br/><br/>
+        <center>
+            <h1>Processing your 3-D Secure Transaction</h1>
+            <h2>JavaScript is currently disabled or is not supported by your browser.<br/></h2>
+            <h3>Please click <b> Submit </b> to continue the processing of your 3-D Secure transaction.</h3>
+            <input type="submit"/>
+        </center>
+    </noscript>
+</form>
+</body>
+</html>

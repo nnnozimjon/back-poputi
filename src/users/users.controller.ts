@@ -62,7 +62,7 @@ export class UsersController {
     }
 
     @Post('login')
-    async login(@Body() body: { phone_number: string; otp_code: string }) {
+    async login(@Body() body: { phone_number: string; password: string }) {
         return this.usersService.loginUser(body);
     }
 

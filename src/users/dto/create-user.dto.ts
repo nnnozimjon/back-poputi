@@ -56,6 +56,10 @@ export class RegisterPassengerDto {
     @IsString()
     @IsNotEmpty()
     phone_number: string;
+
+    @IsString()
+    @IsNotEmpty()
+    password: string;
 }
 export class RegisterUserDto {
     @IsString()
@@ -87,6 +91,10 @@ export class RegisterUserDto {
     @IsString()
     @IsNotEmpty()
     otp_code: string;
+
+    @IsString()
+    @IsNotEmpty()
+    password: string;
 }
 export class LoginUserDto {
     @IsString()
@@ -95,5 +103,5 @@ export class LoginUserDto {
 
     @IsString()
     @IsNotEmpty()
-    otp_code: string;
+    password: string;
 }

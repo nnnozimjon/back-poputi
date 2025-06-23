@@ -13,6 +13,7 @@ import { DriversService } from 'src/drivers/drivers.service';
 import { CarSeatsService } from 'src/car-seats/car-seats.service';
 import { ImageService } from 'src/images/image.service';
 import { OtpService } from 'src/otp/otp.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -117,6 +118,7 @@ export class UsersService {
     }
 
     async createDriverUser(dto: RegisterUserDto, manager?: EntityManager) {
+        const hashedPassword = await bcrypt.hash(dto.password, 10);
         const cleanedPhoneNumber = dto.phone_number
             .replace(/\D/g, '')
             .replace(/^992/, '');
@@ -125,6 +127,7 @@ export class UsersService {
             : this.userRepository;
         const user = repo.create({
             phone_number: cleanedPhoneNumber,
+            password: hashedPassword,
             street_address: dto.street_address,
             fullname: dto.username,
             avatar_image: dto.avatar_image,
@@ -136,10 +139,12 @@ export class UsersService {
     }
 
     async createPassengerUser(dto: RegisterPassengerDto) {
+        const hashedPassword = await bcrypt.hash(dto.password, 10);
         const cleanedPhoneNumber = dto.phone_number
             .replace(/\D/g, '')
             .replace(/^992/, '');
         const user = this.userRepository.create({
+            password: hashedPassword,
             phone_number: cleanedPhoneNumber,
             fullname: dto.username,
             is_driver: false,
@@ -153,16 +158,6 @@ export class UsersService {
         const cleanedPhoneNumber = dto.phone_number
             .replace(/\D/g, '')
             .replace(/^992/, '');
-        const isOtpValid = await this.otpService.verifyOtp(
-            dto.phone_number,
-            'login',
-            dto.otp_code,
-        );
-
-        if (!isOtpValid) {
-            console.log('Error: Invalid OTP code for login');
-            throw new UnauthorizedException('Неверный код подтверждения');
-        }
 
         const user = await this.userRepository.findOne({
             where: { phone_number: cleanedPhoneNumber },
@@ -171,6 +166,13 @@ export class UsersService {
         if (!user) {
             console.log('Error: User not found with phone number:', cleanedPhoneNumber);
             throw new UnauthorizedException('Пользователь не найден');
+        }
+
+        const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+
+        if (!isPasswordValid) {
+            console.log('Error: Invalid password for user:', cleanedPhoneNumber);
+            throw new UnauthorizedException('Неверный пароль');
         }
 
         const payload = {

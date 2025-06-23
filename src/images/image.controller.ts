@@ -6,10 +6,12 @@ import {
     Body,
     Delete,
     Param,
+    Get,
+    Res,
   } from '@nestjs/common';
   import { FileInterceptor } from '@nestjs/platform-express';
   import { ImageService } from './image.service';
-  
+
   @Controller('images')
   export class ImageController {
     constructor(private readonly imageService: ImageService) {}
@@ -29,6 +31,13 @@ import {
       };
   
       return this.imageService.saveImage(file, options);
+    }
+
+    @Get(':filename')
+    async getImage(@Param('filename') filename: string, @Res() res: Response) {
+        const { stream, contentType } = this.imageService.getImageStream(filename);
+        (res as any).setHeader('Content-Type', contentType);
+        stream.pipe(res as any);
     }
   
     @Delete(':filename')

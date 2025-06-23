@@ -22,6 +22,8 @@ import { PreferencesModule } from './preferences/preferences.module';
 import { ImageModule } from './images/image.module';
 import { OtpModule } from './otp/otp.module';
 import { HttpModule } from '@nestjs/axios';
+import { AdminModule } from './admin/admin.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -59,12 +61,12 @@ import { HttpModule } from '@nestjs/axios';
     PreferencesModule,
     ImageModule,
     OtpModule,
+    AdminModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtService, ConfigService],
 })
-
-
 
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
@@ -72,7 +74,8 @@ export class AppModule implements NestModule {
       .apply(JwtMiddleware)
       .exclude(
         { path: 'trips', method: RequestMethod.GET }, 
-        { path: 'trips/:id', method: RequestMethod.GET } 
+        { path: 'trips/:id', method: RequestMethod.GET },
+        { path: 'images/:filename', method: RequestMethod.GET },
       )
       .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking', 'drivers/update', 'drivers', 'images',  'trips/my-trips'); // Apply to all routes, or specify specific routes
   }

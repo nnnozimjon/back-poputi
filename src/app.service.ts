@@ -9,60 +9,67 @@ export class AppService {
 
     async createOrder() {
         const key = '870304';
-        const password = 'hpfkdMw6l4PLysBnbCaS';
-        const orderId = '123461';
-        const amount = '3.50';
+        const password = 'VkAAAvYeujSvcMfpp9Rv';
+        const orderId = Math.floor(Math.random() * 1000000).toString();
+        const amount = '20.00';
         const callbackUrl = 'https://yourdomain.com/callback';
         const returnUrl = 'https://yourdomain.com/success';
-        const gate = 'km';
+        const gate = 'wallet';
         const info = 'Headphones and USB Cable';
         const email = 'client@example.com';
         const phone = '900099669';
-        const invoices = [
-            { name: 'Headphones', quantity: 1, price: 250000 },
-            { name: 'USB Cable', quantity: 2, price: 50000 },
-        ];
 
-        // 1. Generate token
+        // Generate hashed password using HMAC-SHA256
         const hashedPassword = crypto
-            .createHmac('sha256', key) // key is the secret
-            .update(password) // password is the message
+            .createHmac('sha256', key)
+            .update(password)
             .digest('hex');
 
-        // 2. Generate token using HMAC-SHA256 with hashedPassword as the secret
+        // Generate token using HMAC-SHA256 with hashedPassword as the secret
         const token = crypto
-            .createHmac('sha256', hashedPassword) // hashed password is the secret
-            .update(key + orderId + amount + callbackUrl) // concatenated string as message
+            .createHmac('sha256', hashedPassword)
+            .update(key + orderId + amount + callbackUrl)
             .digest('hex');
 
-        // 2. Prepare request payload
-        const payload = new URLSearchParams();
-        payload.append('key', key);
-        payload.append('token', token);
-        payload.append('callbackUrl', callbackUrl);
-        payload.append('returnUrl', returnUrl);
-        payload.append('amount', amount);
-        payload.append('orderId', orderId);
-        payload.append('gate', gate);
-        payload.append('info', info);
-        payload.append('email', email);
-        payload.append('phone', phone);
-        payload.append('invoices', JSON.stringify(invoices));
+        // Prepare form-data payload
+        const formData = {
+            key,
+            token,
+            callbackUrl,
+            returnUrl,
+            amount,
+            orderId,
+            gate,
+            info,
+            email,
+            phone,
+            is_market_place: "false"
+        };
 
-        // 3. Send request to AlifPay test server
-        const response: any = await firstValueFrom(
-            this.httpService.post(
-                'https://test-web.alif.tj',
-                payload.toString(),
-                {
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
+        // Convert formData to URLSearchParams for x-www-form-urlencoded
+        const urlEncodedData = new URLSearchParams();
+        Object.entries(formData).forEach(([k, v]) => {
+            urlEncodedData.append(k, v);
+        });
+
+        try {
+            const response = await firstValueFrom(
+                this.httpService.post(
+                    'https://test-web.alif.tj/v2',
+                    urlEncodedData,
+                    {
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
                     },
-                },
-            ),
-        );
-        console.log('Response from AlifPay:', response.data);
-        return response.data;
+                ),
+            );
+            console.log('Response from AlifPay:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('Error from AlifPay:', error?.response?.data || error.message);
+            throw error;
+        }
     }
 
     getHello(): string {
