@@ -24,6 +24,8 @@ import { OtpModule } from './otp/otp.module';
 import { HttpModule } from '@nestjs/axios';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
+import { SmsService } from './sms/sms.service';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -63,9 +65,10 @@ import { AuthModule } from './auth/auth.module';
     OtpModule,
     AdminModule,
     AuthModule,
+    OrdersModule,
   ],
   controllers: [AppController],
-  providers: [AppService, JwtService, ConfigService],
+  providers: [AppService, JwtService, ConfigService, SmsService],
 })
 
 export class AppModule implements NestModule {

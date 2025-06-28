@@ -10,7 +10,7 @@ export class CarModel {
   @Column()
   name: string;
 
-  @ManyToOne(() => CarBrand, (carBrand) => carBrand.models, { onDelete: 'CASCADE' })
+  @ManyToOne(() => CarBrand, (carBrand) => carBrand.models, { onDelete: 'NO ACTION' })
   brand: CarBrand;
 
   @OneToMany(() => Driver, (driver) => driver.carModel)

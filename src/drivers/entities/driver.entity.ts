@@ -53,25 +53,25 @@ import {
     user: User;
   
     @ManyToOne(() => CarColor, (carColor) => carColor.drivers, {
-      onDelete: 'CASCADE',
+      onDelete: 'NO ACTION',
     })
     @JoinColumn({ name: 'car_color_id' })
     carColor: CarColor;
   
     @ManyToOne(() => CarBodyType, (carBodyType) => carBodyType.drivers, {
-      onDelete: 'CASCADE',
+      onDelete: 'NO ACTION',
     })
     @JoinColumn({ name: 'car_body_type_id' })
     carBodyType: CarBodyType;
   
     @ManyToOne(() => CarBrand, (carBrand) => carBrand.drivers, {
-      onDelete: 'CASCADE',
+      onDelete: 'NO ACTION',
     })
     @JoinColumn({ name: 'car_brand_id' })
     carBrand: CarBrand;
   
     @ManyToOne(() => CarModel, (carModel) => carModel.drivers, {
-      onDelete: 'CASCADE',
+      onDelete: 'NO ACTION',
     })
     @JoinColumn({ name: 'car_model_id' })
     carModel: CarModel;
