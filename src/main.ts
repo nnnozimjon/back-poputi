@@ -8,7 +8,7 @@ async function bootstrap() {
     // Enable CORS
     app.enableCors({
         origin: [
-            'http://localhost:3000',
+            // 'http://localhost:3000',
             'https://poputi.tj',
             'https://www.poputi.tj',
             'https://test.poputi.tj',
