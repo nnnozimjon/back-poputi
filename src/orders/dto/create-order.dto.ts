@@ -1,7 +1,6 @@
 export class CreateOrderDto {
-    user_phone: string;
-    seat_ids: number[];
-    trip_id: string;
-    total_price: number;
-  }
-  
+  user_phone: string;
+  seat_ids: number[];
+  trip_id: string;
+  gate: string;
+}

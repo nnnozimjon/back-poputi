@@ -80,6 +80,6 @@ export class AppModule implements NestModule {
         { path: 'trips/:id', method: RequestMethod.GET },
         { path: 'images/:filename', method: RequestMethod.GET },
       )
-      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking', 'drivers/update', 'drivers', 'images',  'trips/my-trips'); // Apply to all routes, or specify specific routes
+      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking', 'drivers/update', 'drivers', 'images',  'trips/my-trips', 'orders/create');
   }
 }

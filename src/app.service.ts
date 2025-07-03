@@ -20,22 +20,22 @@ export class AppService {
     constructor(private readonly httpService: HttpService,
         private readonly smsService: SmsService
     ) {}
-    private readonly merchant = '100101';
-    private readonly secretKey = 'test123';
+    private readonly merchant = '200038';
+    private readonly secretKey = 'E8EpMSmmEDw7';
     private readonly callbackUrl = 'https://yourdomain.com/api/payments/dc-callback'; 
 
 
     async createOrder() {
         const key = '107632';
-        const password = 't9gOKZYjjlKSCQ3G88Qm';
+        const password = '8ETnInFmCMw2TAFx8ECP';
         const orderId = Math.floor(Math.random() * 1000000).toString();
         const amount = '100';
         const callbackUrl = 'https://yourdomain.com/callback';
         const returnUrl = 'https://yourdomain.com/success';
-        const gate = 'wallet';
+        const gate = 'km';
         const info = 'Headphones and USB Cable';
         const email = 'test@mail.ru';
-        const phone = '992900099669';
+        const phone = '900099669';
 
         // Generate hashed password using HMAC-SHA256
         const hashedPassword = crypto
@@ -72,7 +72,7 @@ export class AppService {
         try {
             const response = await firstValueFrom(
                 this.httpService.post(
-                    'https://web.alif.tj',
+                    'http://web.alif.tj',
                     urlEncodedData,
                     {
                         headers: {

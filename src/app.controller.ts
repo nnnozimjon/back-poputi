@@ -15,7 +15,7 @@ export class AppController {
         return this.appService.createOrder();
     }
 
-    @Post('create-dc-order')
+    @Get('create-dc-order')
     postCreateDcOrder() {
         return this.appService.postCreateDcOrder();
     }

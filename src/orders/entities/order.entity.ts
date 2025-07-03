@@ -8,6 +8,9 @@ export class Order {
   @Column()
   user_phone: string;
 
+  @Column()
+  user_id: string;
+
   @Column('simple-array')
   seat_ids: number[];
 
@@ -25,6 +28,9 @@ export class Order {
 
   @Column({ nullable: true })
   transaction_id?: string;
+
+  @Column({ nullable: true })
+  gate?: string;
 
   @Column({ nullable: true })
   pay_date?: Date;

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -7,14 +7,15 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) { }
 
-  @Post()
-  async createOrder(@Body() dto: CreateOrderDto) {
-    return this.ordersService.create(dto);
-  }
+  @Post('create')
+  async createOrder(@Body() dto: CreateOrderDto, @Req() req: Request) {
+    const { id: user_id } = req["user"]
+    return this.ordersService.create(user_id, dto);
+  } 
 
-  @Post('callback')
+  @Get('callback')
   callback(@Body() dto: any) {
-    return this.ordersService.callback();
+    return this.ordersService.callback(dto);
   }
 
   @Patch(':id')
