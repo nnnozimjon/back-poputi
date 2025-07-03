@@ -103,7 +103,7 @@ export class OrdersService {
     else if (createOrderDto.gate === 'alif') {
       const key = '107632';
       const password = '8ETnInFmCMw2TAFx8ECP';
-      const callbackUrl = 'https://api.poputi.tj/api/client/orders/callback';
+      const callbackUrl = 'https://test-api.poputi.tj/api/client/orders/callback';
       const returnUrl = 'https://poputi.tj/';
       const gate = 'wallet';
       const info = 'Оплата за билет';
