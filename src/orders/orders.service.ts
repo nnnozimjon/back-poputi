@@ -129,6 +129,7 @@ export class OrdersService {
   }
 
   callback(dto: CreateOrderDto) {
+    console.log('ALIF CALLBACK')
     console.log(dto)
     return `This action returns all orders`;
   }
