@@ -13,8 +13,8 @@ export class OrdersController {
     return this.ordersService.create(user_id, dto);
   } 
 
-  @Get('callback')
-  callback(@Body() dto: any) {
+  @Post('callback')
+  callback(@Body() dto: CreateOrderDto) {
     return this.ordersService.callback(dto);
   }
 

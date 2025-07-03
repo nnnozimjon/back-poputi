@@ -128,7 +128,7 @@ export class OrdersService {
     return new BadGatewayException('Payment gateway not supported')
   }
 
-  callback(dto: any) {
+  callback(dto: CreateOrderDto) {
     console.log(dto)
     return `This action returns all orders`;
   }
