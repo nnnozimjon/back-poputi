@@ -273,6 +273,13 @@ export class TripsService {
             bookings.map((booking) => booking.seat.seat_id),
         );
 
+        // Create a map of booked seat IDs from trip seats with 'booked' status
+        const bookedTripSeatIds = new Set(
+            tripSeats
+                .filter((tripSeat) => tripSeat.status === 'booked')
+                .map((tripSeat) => tripSeat.seat_id),
+        );
+
         // Create a map of available seat IDs from trip seats
         const availableSeatIds = new Set(
             tripSeats.map((tripSeat) => tripSeat.seat_id),
@@ -285,13 +292,10 @@ export class TripsService {
 
         // Process car seats to include booking status
         const processedCarSeats = carSeats.map((carSeat) => {
-            // A seat is considered booked if:
-            // 1. It's a driver seat OR
-            // 2. It has a confirmed booking OR
-            // 3. It's not available in trip seats (manually booked)
             const isBooked =
                 carSeat.is_driver_seat ||
                 bookedSeatIds.has(carSeat.id) ||
+                bookedTripSeatIds.has(carSeat.id) ||
                 !availableSeatIds.has(carSeat.id);
             return {
                 id: carSeat.id,

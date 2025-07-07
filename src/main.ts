@@ -8,7 +8,7 @@ async function bootstrap() {
     // Enable CORS
     app.enableCors({
         origin: [
-            // 'http://localhost:3000',
+            'http://localhost:3000',
             'https://poputi.tj',
             'https://www.poputi.tj',
             'https://test.poputi.tj',
@@ -20,9 +20,8 @@ async function bootstrap() {
 
     app.useGlobalPipes(new ValidationPipe());
 
-    // Set global prefix for all routes
-    app.setGlobalPrefix('api/client'); // This will make all routes start with "/api/client"
-
+    app.setGlobalPrefix('api/client');
+    
     await app.listen(process.env.PORT || 3000);
 }
 bootstrap();
