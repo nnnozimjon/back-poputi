@@ -53,7 +53,7 @@ export class OrdersService {
             (sum, seat) => Number(sum) + Number(seat.price),
             0,
         );
-        const bookingFee = 3 * tripSeats.tripSeats.length;
+        const bookingFee = 0 * tripSeats.tripSeats.length;
         const total_price = seatsTotalPrice + bookingFee;
 
         const order = this.orderRepository.create({
@@ -142,6 +142,7 @@ export class OrdersService {
     }
 
     async callback(dto: CallbackDto) {
+        console.log(dto);
         try {
             const order = await this.orderRepository.findOne({
                 where: { id: dto.orderId },
@@ -152,7 +153,7 @@ export class OrdersService {
                 return { success: false, message: 'Заказ не найден' };
             }
 
-            if (order.status === 'paid') {
+            if (order.status === 'paid' || order.status === 'success') {
                 return { success: true, message: 'Заказ уже оплачен' };
             }
 
@@ -197,7 +198,7 @@ export class OrdersService {
                     } = driverInfo;
 
                     const smsMessage = `
-✅ Вы успешно оплатили дорожный сбор.
+Вы успешно оплатили дорожный сбор.
 Водитель: ${driverName}
 Телефон: ${phoneNumber}
 Авто: ${carBrand} ${carModel}, ${carColor}, номер ${plateNumber}
@@ -212,14 +213,12 @@ export class OrdersService {
 
                     this.smsService.sendSms(
                         phoneNumber,
-                        `
-            Пасажир: ${order.user_phone} успешно оплатил дорожный сбор.
-            `,
+                        `Пасажир: ${order.user_phone} успешно оплатил дорожный сбор.`,
                     );
                     this.smsService.sendSms(order.user_phone, smsMessage);
                 } else {
                     const fallbackSms = `
-✅ Вы успешно оплатили дорожный сбор.
+Вы успешно оплатили дорожный сбор.
 Ваш заказ подтвержден.
 Приятной поездки`;
 
@@ -231,6 +230,7 @@ export class OrdersService {
 
                 return { success: true, message: 'Оплата прошла успешно' };
             } else {
+                console.log('Оплата не прошла', dto);
                 await this.orderRepository.update(order.id, {
                     status: 'failed',
                     transaction_id: dto.transactionId,
@@ -239,6 +239,7 @@ export class OrdersService {
                 return { success: false, message: 'Оплата не прошла' };
             }
         } catch (error) {
+            console.error('Ошибка при обработке оплаты', error);
             return { success: false, message: 'Ошибка при обработке оплаты' };
         }
     }

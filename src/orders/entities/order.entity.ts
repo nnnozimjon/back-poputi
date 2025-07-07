@@ -21,7 +21,7 @@ export class Order {
   total_price: number;
 
   @Column({ default: 'pending' })
-  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  status: 'pending' | 'paid' | 'failed' | 'refunded' | 'success';
 
   @Column({ nullable: true })
   invoice_id?: string;
