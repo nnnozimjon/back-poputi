@@ -33,6 +33,9 @@ export class Order {
   gate?: string;
 
   @Column({ nullable: true })
+  token?: string;
+
+  @Column({ nullable: true })
   pay_date?: Date;
 
   @CreateDateColumn()

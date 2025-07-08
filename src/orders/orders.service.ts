@@ -13,6 +13,7 @@ import { Trip } from 'src/trips/entities/trip.entity';
 import { TripSeat } from 'src/trip-seats/entities/trip-seat.entity';
 import * as md5 from 'md5';
 import { SmsService } from 'src/sms/sms.service';
+import * as CryptoJS from 'crypto-js';
 
 @Injectable()
 export class OrdersService {
@@ -122,6 +123,10 @@ export class OrdersService {
             const gate = 'wallet';
             const info = 'Оплата за билет';
 
+            const tkn = key + order_id + order.total_price + callbackUrl;
+            const hashedPassword = CryptoJS.HmacSHA256(password, key).toString(CryptoJS.enc.Hex);
+            const token = CryptoJS.HmacSHA256(tkn, hashedPassword).toString(CryptoJS.enc.Hex);
+
             return {
                 success: true,
                 data: {
@@ -147,6 +152,19 @@ export class OrdersService {
             const order = await this.orderRepository.findOne({
                 where: { id: dto.orderId },
             });
+
+            const merchant = '107632';
+            const secretKey = '8ETnInFmCMw2TAFx8ECP';
+            const callbackUrl =
+            'https://test-api.poputi.tj/api/client/orders/callback';
+
+            const tkn = merchant + dto.orderId + dto.amount + callbackUrl;
+            const hashedPassword = CryptoJS.HmacSHA256(secretKey, merchant).toString(CryptoJS.enc.Hex);
+            const token = CryptoJS.HmacSHA256(tkn, hashedPassword).toString(CryptoJS.enc.Hex);
+
+            if (dto.token !== token) {
+                return { success: false, message: 'Invalid signature' };
+            }
 
             if (!order) {
                 console.error('Заказ не найден', dto.orderId);
@@ -250,6 +268,14 @@ export class OrdersService {
             const order = await this.orderRepository.findOne({
                 where: { id: dto.order_id },
             });
+
+            const merchant = '200038';
+            const secretKey = 'E8EpMSmmEDw7';
+            const sign = md5(merchant + dto.order_id + secretKey);
+
+            if (sign !== dto.sign) {
+                return { success: false, message: 'Invalid signature' };
+            }
 
             if (!order) {
                 console.error('Заказ не найден', dto.order_id);
