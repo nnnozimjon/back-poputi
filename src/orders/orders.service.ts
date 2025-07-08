@@ -256,11 +256,11 @@ export class OrdersService {
                 return { success: false, message: 'Заказ не найден' };
             }
 
-            if (order.status === 'success') {
+            if (order.status === 'paid') {
                 return { success: true, message: 'Заказ уже оплачен' };
             }
 
-            if (dto.status === 'success') {
+            if (dto.amount == order.total_price) {
                 const tripSeats = await this.tripSeatRepository.find({
                     where: {
                         trip_id: order.trip_id,

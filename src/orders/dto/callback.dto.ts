@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsNumber, IsNotEmpty } from 'class-validator';
+import { IsString, IsEnum, IsNumber, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CallbackDto {
     @IsString()
@@ -37,9 +37,9 @@ export class DcCallbackDto {
     @IsNotEmpty()
     order_id: string; 
 
-
-    @IsEnum(['ok', 'failed', 'canceled', 'pending', 'success'])
-    status: 'ok' | 'failed' | 'canceled' | 'pending' | 'success';
+    @IsNumber()
+    @IsNotEmpty()
+    amount: number;
 
     @IsString()
     @IsNotEmpty()
@@ -54,7 +54,7 @@ export class DcCallbackDto {
     payid: string; 
 
     @IsString()
-    @IsNotEmpty()
+    @IsOptional()
     pay_date: string; 
 
     @IsString()
