@@ -41,6 +41,10 @@ export class DcCallbackDto {
     @IsNotEmpty()
     amount: number;
 
+    @IsEnum(['Failed', 'Pending', 'Canceled', 'Paid',])
+    @IsOptional()
+    status: 'Failed' | 'Pending' | 'Canceled' | 'Paid';
+
     @IsString()
     @IsNotEmpty()
     currency: string; 

@@ -157,7 +157,7 @@ export class OrdersService {
                 return { success: true, message: 'Заказ уже оплачен' };
             }
 
-            if (dto.status === 'ok') {
+            if (dto.status === 'ok' || dto.amount == order.total_price) {
                 const tripSeats = await this.tripSeatRepository.find({
                     where: {
                         trip_id: order.trip_id,
@@ -260,7 +260,7 @@ export class OrdersService {
                 return { success: true, message: 'Заказ уже оплачен' };
             }
 
-            if (dto.amount == order.total_price) {
+            if (dto.amount == order.total_price || dto.status === 'Paid') {
                 const tripSeats = await this.tripSeatRepository.find({
                     where: {
                         trip_id: order.trip_id,
