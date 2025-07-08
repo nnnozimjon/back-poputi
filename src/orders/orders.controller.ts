@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { CallbackDto } from './dto/callback.dto';
+import { CallbackDto, DcCallbackDto } from './dto/callback.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -28,6 +28,11 @@ export class OrdersController {
   @Post('callback')
   callback(@Body() dto: CallbackDto) {
     return this.ordersService.callback(dto);
+  }
+
+  @Post('callback-dc')
+  dccallback(@Body() dto: DcCallbackDto) {
+    return this.ordersService.dccallback(dto);
   }
 
   @Post(':id/refund')

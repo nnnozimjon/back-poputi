@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { CallbackDto } from './dto/callback.dto';
+import { CallbackDto, DcCallbackDto } from './dto/callback.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
 import { Repository, In } from 'typeorm';
@@ -24,7 +24,7 @@ export class OrdersService {
         @InjectRepository(TripSeat)
         private readonly tripSeatRepository: Repository<TripSeat>,
         private readonly smsService: SmsService,
-    ) {}
+    ) { }
 
     async create(
         user_id: string,
@@ -83,7 +83,7 @@ export class OrdersService {
                 phone: createOrderDto.user_phone.replace(/[^0-9]/g, ''),
                 description: 'Оплата за билет',
                 callback_url:
-                    'https://test-api.poputi.tj/api/client/orders/callback',
+                    'https://test-api.poputi.tj/api/client/orders/callback-dc',
                 sign,
             };
 
@@ -142,7 +142,7 @@ export class OrdersService {
     }
 
     async callback(dto: CallbackDto) {
-        console.log(dto);
+        console.log('Alif Callback', dto);
         try {
             const order = await this.orderRepository.findOne({
                 where: { id: dto.orderId },
@@ -153,11 +153,11 @@ export class OrdersService {
                 return { success: false, message: 'Заказ не найден' };
             }
 
-            if (order.status === 'paid' || order.status === 'success') {
+            if (order.status === 'paid') {
                 return { success: true, message: 'Заказ уже оплачен' };
             }
 
-            if (dto.status === 'ok' || dto.status === 'success') {
+            if (dto.status === 'ok') {
                 const tripSeats = await this.tripSeatRepository.find({
                     where: {
                         trip_id: order.trip_id,
@@ -234,6 +234,109 @@ export class OrdersService {
                 await this.orderRepository.update(order.id, {
                     status: 'failed',
                     transaction_id: dto.transactionId,
+                });
+
+                return { success: false, message: 'Оплата не прошла' };
+            }
+        } catch (error) {
+            console.error('Ошибка при обработке оплаты', error);
+            return { success: false, message: 'Ошибка при обработке оплаты' };
+        }
+    }
+
+    async dccallback(dto: DcCallbackDto) {
+        console.log('DC CallBack', dto);
+        try {
+            const order = await this.orderRepository.findOne({
+                where: { id: dto.order_id },
+            });
+
+            if (!order) {
+                console.error('Заказ не найден', dto.order_id);
+                return { success: false, message: 'Заказ не найден' };
+            }
+
+            if (order.status === 'success') {
+                return { success: true, message: 'Заказ уже оплачен' };
+            }
+
+            if (dto.status === 'success') {
+                const tripSeats = await this.tripSeatRepository.find({
+                    where: {
+                        trip_id: order.trip_id,
+                        seat_id: In(order.seat_ids),
+                        status: 'available',
+                    },
+                });
+
+                if (tripSeats.length !== order.seat_ids.length) {
+                    await this.orderRepository.update(order.id, {
+                        status: 'failed',
+                        transaction_id: dto.payid,
+                    });
+                    return {
+                        success: false,
+                        message: 'Некоторые места уже заняты',
+                    };
+                }
+
+                await this.orderRepository.update(order.id, {
+                    status: 'paid',
+                    transaction_id: dto.payid,
+                    pay_date: new Date(),
+                });
+
+                await this.bookTripSeats(order.trip_id, order.seat_ids);
+
+                const driverInfo = await this.getDriverInfo(order.trip_id);
+
+                if (driverInfo) {
+                    const {
+                        driverName,
+                        phoneNumber,
+                        carBrand,
+                        carModel,
+                        carColor,
+                        plateNumber,
+                    } = driverInfo;
+
+                    const smsMessage = `
+Вы успешно оплатили дорожный сбор.
+Водитель: ${driverName}
+Телефон: ${phoneNumber}
+Авто: ${carBrand} ${carModel}, ${carColor}, номер ${plateNumber}
+Приятной поездки`;
+
+                    console.log('Sending SMS with driver details:', {
+                        driverName,
+                        phone: phoneNumber,
+                        car: `${carBrand} ${carModel}`,
+                        plateNumber,
+                    });
+
+                    this.smsService.sendSms(
+                        phoneNumber,
+                        `Пасажир: ${order.user_phone} успешно оплатил дорожный сбор.`,
+                    );
+                    this.smsService.sendSms(order.user_phone, smsMessage);
+                } else {
+                    const fallbackSms = `
+Вы успешно оплатили дорожный сбор.
+Ваш заказ подтвержден.
+Приятной поездки`;
+
+                    console.log(
+                        'Sending fallback SMS - driver info not available',
+                    );
+                    this.smsService.sendSms(order.user_phone, fallbackSms);
+                }
+
+                return { success: true, message: 'Оплата прошла успешно' };
+            } else {
+                console.log('Оплата не прошла', dto);
+                await this.orderRepository.update(order.id, {
+                    status: 'failed',
+                    transaction_id: dto.payid,
                 });
 
                 return { success: false, message: 'Оплата не прошла' };
