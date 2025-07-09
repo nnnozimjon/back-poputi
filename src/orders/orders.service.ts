@@ -53,7 +53,7 @@ export class OrdersService {
             (sum, seat) => Number(sum) + Number(seat.price),
             0,
         );
-        const bookingFee = 0 * tripSeats.tripSeats.length;
+        const bookingFee = 3 * tripSeats.tripSeats.length;
         const total_price = seatsTotalPrice + bookingFee;
 
         const order = this.orderRepository.create({
@@ -83,7 +83,7 @@ export class OrdersService {
                 phone: createOrderDto.user_phone.replace(/[^0-9]/g, ''),
                 description: 'Оплата за билет',
                 callback_url:
-                    'https://test-api.poputi.tj/api/client/orders/callback-dc',
+                    'https://api.poputi.tj/api/client/orders/callback-dc',
                 sign,
             };
 
@@ -117,7 +117,7 @@ export class OrdersService {
             const key = '107632';
             const password = '8ETnInFmCMw2TAFx8ECP';
             const callbackUrl =
-                'https://test-api.poputi.tj/api/client/orders/callback';
+                'https://api.poputi.tj/api/client/orders/callback';
             const returnUrl = 'https://poputi.tj/';
             const gate = 'wallet';
             const info = 'Оплата за билет';
