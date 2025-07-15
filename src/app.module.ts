@@ -26,6 +26,8 @@ import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { SmsService } from './sms/sms.service';
 import { OrdersModule } from './orders/orders.module';
+import { PayoutMethodModule } from './payout-methods/payout-methods.module';
+import { UserPayoutsModule } from './user-payouts/user-payouts.module';
 
 @Module({
   imports: [
@@ -66,6 +68,8 @@ import { OrdersModule } from './orders/orders.module';
     AdminModule,
     AuthModule,
     OrdersModule,
+    PayoutMethodModule,
+    UserPayoutsModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtService, ConfigService, SmsService],
@@ -80,6 +84,6 @@ export class AppModule implements NestModule {
         { path: 'trips/:id', method: RequestMethod.GET },
         { path: 'images/:filename', method: RequestMethod.GET },
       )
-      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking', 'drivers/update', 'drivers', 'images',  'trips/my-trips', 'orders/create');
+      .forRoutes('driver-preference', 'drivers/vehicle-details', 'car-seats', 'trips', 'booking', 'drivers/update', 'drivers', 'images',  'trips/my-trips', 'orders/create', 'orders/passanger', 'users/get-user-info', 'drivers/upload-car-images', 'drivers/car-images', 'user-payouts/create');
   }
 }

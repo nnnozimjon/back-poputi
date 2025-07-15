@@ -6,6 +6,7 @@ import { Driver } from './entities/driver.entity';
 import { User } from 'src/users/entities/user.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ImageService } from 'src/images/image.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Driver, User]),
@@ -18,7 +19,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     inject: [ConfigService], // Inject ConfigService
   }),],
   controllers: [DriversController],
-  providers: [DriversService],
+  providers: [DriversService, ImageService],
   exports: [DriversService],
 })
 export class DriversModule {}

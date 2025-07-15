@@ -63,7 +63,7 @@ export class OrdersService {
             trip_id: createOrderDto.trip_id,
             total_price: total_price,
             gate: createOrderDto.gate,
-            status: 'pending',
+            status: 'new',
         });
 
         const newOrder = await this.orderRepository.save(order);
@@ -100,6 +100,7 @@ export class OrdersService {
                 );
 
                 const data = await response.json();
+                console.log('DC Invoice data', data);
 
                 if (data.code !== 200) {
                     throw new Error(data.message || 'Invoice creation failed');
@@ -469,11 +470,66 @@ export class OrdersService {
     }
 
     async getUserOrders(userId: string) {
-        return this.orderRepository.find({
-            where: { user_id: userId },
-            relations: ['trip'],
+        const orders = await this.orderRepository.find({
+            where: { user_id: userId, status: In(['paid', 'pending']) },
             order: { created_at: 'DESC' },
         });
+
+        const userOrders = await Promise.all(
+            orders.map(async (order) => {
+                const trip = await this.tripRepository.findOne({
+                    where: { id: order.trip_id },
+                    relations: [
+                        'driver',
+                        'driver.user',
+                        'driver.carBrand',
+                        'driver.carModel',
+                        'driver.carColor',
+                    ],
+                });
+
+                if (!trip) {
+                    return null;
+                }
+
+                const tripSeats = await this.tripSeatRepository.find({
+                    where: {
+                        trip_id: order.trip_id,
+                        seat_id: In(order.seat_ids),
+                    },
+                });
+
+                const boughtSeats = tripSeats.map((tripSeat) => ({
+                    seatNumber: tripSeat.seat_id,
+                    price: Number(tripSeat.price),
+                }));
+
+                const seats = order.seat_ids.length;
+
+                const price = Number(order.total_price);
+
+                const driver = {
+                    name: trip.driver.user.fullname,
+                    avatar: '',
+                    rating: 4.8,
+                    car: `${trip.driver.carBrand.name} ${trip.driver.carModel.name} • ${trip.driver.carColor.name}`,
+                };
+
+                return {
+                    id: order.id,
+                    departure_date: trip.departure_time,
+                    from: trip.departure_city,
+                    to: trip.destination_city,
+                    seats,
+                    driver,
+                    status: order.status,
+                    price,
+                    boughtSeats,
+                };
+            })
+        );
+
+        return userOrders.filter(order => order !== null);
     }
 
     async findAll() {

@@ -20,8 +20,8 @@ export class Order {
   @Column('decimal', { scale: 2 })
   total_price: number;
 
-  @Column({ default: 'pending' })
-  status: 'pending' | 'paid' | 'failed' | 'refunded' | 'success';
+  @Column({ default: 'new' })
+  status: 'new' | 'pending' | 'paid' | 'failed' | 'refunded' | 'success';
 
   @Column({ nullable: true })
   invoice_id?: string;

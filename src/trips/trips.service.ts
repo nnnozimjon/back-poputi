@@ -4,7 +4,7 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, QueryRunner } from 'typeorm';
+import { Repository, DataSource, QueryRunner, Raw } from 'typeorm';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { Trip } from '../trips/entities/trip.entity';
 import { CarSeat } from '../car-seats/entities/car-seat.entity';
@@ -14,7 +14,6 @@ import { PaginationDto } from 'src/trip-seats/dto/pagination.dto';
 import { Booking } from '../booking/entities/booking.entity';
 import { UpdateTripDto } from './dto/update-trip.dto';
 
-// !comment: change validations to russian
 @Injectable()
 export class TripsService {
     constructor(
@@ -29,16 +28,14 @@ export class TripsService {
         @InjectRepository(Booking)
         private bookingRepository: Repository<Booking>,
         private dataSource: DataSource,
-    ) {}
+    ) { }
 
     async create(userId: string, createTripDto: CreateTripDto) {
-        // !comment: add validation to car_seats
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
         try {
-            // 1. Validate driver exists
             const driver = await this.driverRepository.findOne({
                 where: { user_id: userId },
             });
@@ -46,10 +43,8 @@ export class TripsService {
                 throw new NotFoundException('Driver not found for this user');
             }
 
-            // 2. Validate trip times
             this.validateTripTimes(createTripDto);
 
-            // 3. Create the Trip
             const trip = this.tripRepository.create({
                 driver_id: driver.id,
                 departure_city: createTripDto.departure_city,
@@ -63,7 +58,6 @@ export class TripsService {
 
             const savedTrip = await queryRunner.manager.save(trip);
 
-            // 4. Create and validate TripSeat records
             const tripSeats = await this.createTripSeats(
                 queryRunner,
                 savedTrip.id,
@@ -129,6 +123,8 @@ export class TripsService {
             passengers,
             departure_time,
             type,
+            price_sort,
+            pickup_time_range,
         } = paginationDto;
 
         const query = this.tripRepository
@@ -155,7 +151,6 @@ export class TripsService {
                 'tripSeats',
             ]);
 
-        // Add filters if they exist
         if (departure_city) {
             query.andWhere('trip.departure_city = :departureCity', {
                 departureCity: departure_city,
@@ -206,13 +201,53 @@ export class TripsService {
                 .setParameter('passengers', passengers);
         }
 
-        // Add pagination and ordering
-        query
-            .skip((page - 1) * limit)
-            .take(limit)
-            .orderBy('trip.created_at', 'ASC');
+        if (pickup_time_range) {
+            let startHour = 0, endHour = 24;
+            switch (pickup_time_range) {
+                case 'morning':
+                    startHour = 6; endHour = 12; break;
+                case 'afternoon':
+                    startHour = 12; endHour = 18; break;
+                case 'evening':
+                    startHour = 18; endHour = 24; break;
+                case 'night':
+                    startHour = 0; endHour = 6; break;
+            }
+            query.andWhere(
+                `EXTRACT(HOUR FROM trip.departure_time) >= :startHour AND EXTRACT(HOUR FROM trip.departure_time) < :endHour`,
+                { startHour, endHour }
+            );
+        }
+
+        query.andWhere('trip.departure_time > :currentTime', {
+            currentTime: new Date(),
+        });
+
+        query.skip((page - 1) * limit).take(limit);
 
         const [trips, total] = await query.getManyAndCount();
+
+        if (price_sort) {
+            trips.sort((a, b) => {
+                const availableSeatsA = a.tripSeats.filter(seat => seat.status === 'available');
+                const availableSeatsB = b.tripSeats.filter(seat => seat.status === 'available');
+
+                const minPriceA = availableSeatsA.length > 0
+                    ? Math.min(...availableSeatsA.map(seat => Number(seat.price)))
+                    : Infinity;
+                const minPriceB = availableSeatsB.length > 0
+                    ? Math.min(...availableSeatsB.map(seat => Number(seat.price)))
+                    : Infinity;
+
+                if (price_sort === 'lowest') {
+                    return minPriceA - minPriceB; // ASC
+                } else {
+                    return minPriceB - minPriceA; // DESC
+                }
+            });
+        } else {
+            query.orderBy('trip.created_at', 'ASC');
+        }
 
         // Structure the response
         const structuredTrips = trips.map((trip) => ({

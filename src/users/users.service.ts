@@ -179,7 +179,7 @@ export class UsersService {
             id: user.id,
             phone_number: user.phone_number,
             fullname: user.fullname,
-            avatar_image: user.avatar_image,
+            avatar_image: user.avatar_image ? `${process.env.API_URL}/images/${user.avatar_image}` : null,
             street_address: user.street_address,
             is_driver: user.is_driver,
         };
@@ -191,6 +191,23 @@ export class UsersService {
         return {
             token,
             user,
+        };
+    }
+
+    async getUserInfo(user_id: string) {
+        const user = await this.userRepository.findOne({
+            where: { id: user_id },
+        });
+
+        if (!user) {
+            return null;
+        }
+
+        return {
+            phone_number: user.phone_number,
+            username: user.fullname,
+            avatar_image: user.avatar_image ? `${process.env.STORAGE_API}/images/${user.avatar_image}` : null,
+            address: user.street_address,
         };
     }
 }

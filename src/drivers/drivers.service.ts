@@ -2,6 +2,7 @@ import {
     ConflictException,
     Injectable,
     NotFoundException,
+    BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
@@ -11,6 +12,8 @@ import { UpdateDriverDto } from './dto/update-driver.dto';
 import { User } from 'src/users/entities/user.entity';
 import { DriverDetailsDto } from './dto/driver-details.dto';
 import { JwtService } from '@nestjs/jwt';
+import { ImageService } from 'src/images/image.service';
+
 
 // !comment: change validation to russian language
 
@@ -20,6 +23,7 @@ export class DriversService {
         @InjectRepository(Driver) private driverRepository: Repository<Driver>,
         @InjectRepository(User) private userRepository: Repository<User>,
         private readonly jwtService: JwtService,
+        private readonly imageService: ImageService,
     ) {}
 
     async create(
@@ -159,6 +163,110 @@ export class DriversService {
             driver: updatedDriver,
             token,
         };
+    }
+
+    async uploadCarImages(userId: string, files: Express.Multer.File[]) {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Check if user is a driver
+        if (!user.is_driver) {
+            throw new BadRequestException('Only drivers can upload car images');
+        }
+
+        // Initialize car_images array if it doesn't exist
+        if (!user.car_images) {
+            user.car_images = [];
+        }
+
+        // Check if adding these images would exceed the limit of 5
+        if (user.car_images.length + files.length > 5) {
+            throw new BadRequestException('Maximum 5 car images allowed. You currently have ' + user.car_images.length + ' images.');
+        }
+
+        const savedImageNames: string[] = [];
+
+        try {
+            for (const file of files) {
+                const image = await this.imageService.saveImage(file);
+                savedImageNames.push(image.fileName);
+            }
+
+            // Add all new image names to the user's car_images array
+            user.car_images = [...user.car_images, ...savedImageNames];
+
+            const updatedUser = await this.userRepository.save(user);
+            
+            // Return the updated user with full image URLs
+            return {
+                ...updatedUser,
+                car_images: updatedUser.car_images.map(imageName => 
+                    `${process.env.API_URL || 'http://localhost:3000'}/images/${imageName}`
+                )
+            };
+        } catch (error) {
+            // If there's an error, try to clean up any saved images
+            for (const imageName of savedImageNames) {
+                try {
+                    await this.imageService.deleteImage(imageName);
+                } catch (deleteError) {
+                    console.error('Failed to delete image during rollback:', deleteError);
+                }
+            }
+            throw error;
+        }
+    }
+
+    async getCarImages(userId: string) {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Check if user is a driver
+        if (!user.is_driver) {
+            throw new BadRequestException('Only drivers can access car images');
+        }
+
+        return {
+            car_images: user.car_images ? user.car_images.map(imageName => 
+                `${process.env.API_URL || 'http://localhost:3000'}/images/${imageName}`
+            ) : []
+        };
+    }
+
+    async deleteCarImage(userId: string, imageName: string) {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Check if user is a driver
+        if (!user.is_driver) {
+            throw new BadRequestException('Only drivers can delete car images');
+        }
+
+        if (!user.car_images || !user.car_images.includes(imageName)) {
+            throw new NotFoundException('Image not found in user\'s car images');
+        }
+
+        try {
+            // Remove the image from the user's car_images array
+            user.car_images = user.car_images.filter(img => img !== imageName);
+            await this.userRepository.save(user);
+
+            // Delete the actual image file
+            await this.imageService.deleteImage(imageName);
+
+            return {
+                message: 'Car image deleted successfully',
+                remaining_images: user.car_images.length
+            };
+        } catch (error) {
+            throw new BadRequestException('Failed to delete car image');
+        }
     }
 
     // Retrieve all drivers

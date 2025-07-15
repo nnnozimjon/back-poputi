@@ -13,13 +13,13 @@ export class OrdersController {
     const { id: user_id } = req["user"]
     return this.ordersService.create(user_id, dto);
   } 
+  
+  // @Get()
+  // findAll() {
+  //   return this.ordersService.findAll();
+  // }
 
-  @Get()
-  findAll() {
-    return this.ordersService.findAll();
-  }
-
-  @Get('my-orders')
+  @Get('passanger')
   getMyOrders(@Req() req: Request) {
     const { id: user_id } = req["user"]
     return this.ordersService.getUserOrders(user_id);
@@ -35,33 +35,33 @@ export class OrdersController {
     return this.ordersService.dccallback(dto);
   }
 
-  @Post(':id/refund')
-  refund(@Param('id') id: string) {
-    return this.ordersService.refundOrder(id);
-  }
+  // @Post(':id/refund')
+  // refund(@Param('id') id: string) {
+  //   return this.ordersService.refundOrder(id);
+  // }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(+id);
-  }
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.ordersService.findOne(+id);
+  // }
 
-  @Get(':id/details')
-  getOrderDetails(@Param('id') id: string) {
-    return this.ordersService.getOrderDetails(id);
-  }
+  // @Get(':id/details')
+  // getOrderDetails(@Param('id') id: string) {
+  //   return this.ordersService.getOrderDetails(id);
+  // }
 
-  @Get('trip/:tripId/driver-info')
-  getTripWithDriverInfo(@Param('tripId') tripId: string) {
-    return this.ordersService.getTripWithDriverInfo(tripId);
-  }
+  // @Get('trip/:tripId/driver-info')
+  // getTripWithDriverInfo(@Param('tripId') tripId: string) {
+  //   return this.ordersService.getTripWithDriverInfo(tripId);
+  // }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.ordersService.update(+id, updateOrderDto);
-  }
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
+  //   return this.ordersService.update(+id, updateOrderDto);
+  // }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ordersService.remove(+id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.ordersService.remove(+id);
+  // }
 }

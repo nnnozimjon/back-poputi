@@ -32,6 +32,8 @@ export class TripsController {
         @Query('departure_time') departure_time?: string,
         @Query('type') type?: 'bus' | 'car',
         @Query('passengers') passengers?: number,
+        @Query('price_sort') price_sort?: 'lowest' | 'highest',
+        @Query('pickup_time_range') pickup_time_range?: 'morning' | 'afternoon' | 'evening' | 'night',
     ) {
         return this.tripsService.getAllTrips({
             page,
@@ -41,6 +43,8 @@ export class TripsController {
             departure_time,
             type,
             passengers,
+            price_sort,
+            pickup_time_range,
         });
     }
 

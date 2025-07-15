@@ -28,4 +28,12 @@ export class PaginationDto {
   @IsOptional()
   @IsString()
   type?: 'bus' | 'car';
+
+  @IsOptional()
+  @IsString()
+  price_sort?: 'lowest' | 'highest';
+
+  @IsOptional()
+  @IsString()
+  pickup_time_range?: 'morning' | 'afternoon' | 'evening' | 'night';
 }

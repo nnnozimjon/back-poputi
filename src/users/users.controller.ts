@@ -5,6 +5,8 @@ import {
     UseInterceptors,
     UploadedFile,
     BadRequestException,
+    Get,
+    Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { RegisterPassengerDto, RegisterUserDto, SendOtpCodeDto } from './dto/create-user.dto';
@@ -75,5 +77,11 @@ export class UsersController {
             body.type,
             body.otp,
         );
+    }
+
+    @Get('get-user-info')
+    async getUserInfo(@Req() req: Request) {
+        const { id: user_id } = req["user"]
+        return this.usersService.getUserInfo(user_id);
     }
 }

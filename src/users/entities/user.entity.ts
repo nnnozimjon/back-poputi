@@ -1,5 +1,6 @@
 import { Booking } from 'src/booking/entities/booking.entity';
 import { Driver } from 'src/drivers/entities/driver.entity';
+import { UserPayout } from 'src/user-payouts/entities/user-payouts.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'users' })
@@ -21,6 +22,12 @@ export class User {
 
     @Column({ nullable: true })
     passport_image: string;
+
+    @Column({ nullable: true })
+    license_image: string;
+
+    @Column('simple-array', { nullable: true })
+    car_images: string[];
 
     @Column({ default: false })
     is_driver: boolean;
@@ -44,4 +51,7 @@ export class User {
 
     @OneToMany(() => Booking, (booking) => booking.client)
     bookings: Booking[];
+
+    @OneToMany(() => UserPayout, (userPayout) => userPayout.user)
+    userPayouts: UserPayout[];
 }
