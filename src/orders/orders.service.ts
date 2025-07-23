@@ -82,6 +82,8 @@ export class OrdersService {
                 amount: Number(total_price) * 100,
                 phone: createOrderDto.user_phone.replace(/[^0-9]/g, ''),
                 description: 'Оплата за билет',
+                approve_url: 'https://poputi.tj/my-trips',
+                return_url: 'https://poputi.tj/my-trips',
                 callback_url:
                     'https://api.poputi.tj/api/client/orders/callback-dc',
                 sign,
@@ -119,7 +121,7 @@ export class OrdersService {
             const password = '8ETnInFmCMw2TAFx8ECP';
             const callbackUrl =
                 'https://api.poputi.tj/api/client/orders/callback';
-            const returnUrl = 'https://poputi.tj/';
+            const returnUrl = 'https://poputi.tj/my-trips';
             const gate = 'wallet';
             const info = 'Оплата за билет';
 
